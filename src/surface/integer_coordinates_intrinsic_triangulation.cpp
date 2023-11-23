@@ -4,7 +4,6 @@
 
 namespace geometrycentral {
 namespace surface {
-
 // helper functions
 namespace {
 template <typename T>
@@ -26,13 +25,11 @@ std::array<T, 3> rotate(const std::array<T, 3>& data) {
 }
 
 inline Vector3 rotate(const Vector3& v) { return {v.y, v.z, v.x}; }
-
 } // namespace
 
 IntegerCoordinatesIntrinsicTriangulation::IntegerCoordinatesIntrinsicTriangulation(
     ManifoldSurfaceMesh& mesh_, IntrinsicGeometryInterface& inputGeom_, double mollifyEPS)
     : IntrinsicTriangulation(mesh_, inputGeom_), normalCoordinates(*intrinsicMesh) {
-
   normalCoordinates.setCurvesFromEdges(*intrinsicMesh);
 
   // TODO document/expose this somehow, rather than just doing it silently
@@ -48,12 +45,33 @@ IntegerCoordinatesIntrinsicTriangulation::IntegerCoordinatesIntrinsicTriangulati
   }
 }
 
+IntegerCoordinatesIntrinsicTriangulation::IntegerCoordinatesIntrinsicTriangulation(
+    ManifoldSurfaceMesh& mesh_, IntrinsicGeometryInterface& inputGeom_, const ManifoldSurfaceMesh& intrinsicMesh_,
+    const EdgeData<double>& edgeLengths_, const VertexData<SurfacePoint>& vertexLocations_,
+    const EdgeData<int>& edgeCoords_, const HalfedgeData<int>& roundabouts_, const VertexData<int>& roundaboutDegrees_,
+    double mollifyEPS)
+    : IntrinsicTriangulation(mesh_, inputGeom_, intrinsicMesh_, edgeLengths_, vertexLocations_),
+      normalCoordinates(*intrinsicMesh) {
+
+  normalCoordinates.edgeCoords = edgeCoords_.reinterpretTo(*intrinsicMesh);
+  normalCoordinates.roundabouts = roundabouts_.reinterpretTo(*intrinsicMesh);
+  normalCoordinates.roundaboutDegrees = roundaboutDegrees_.reinterpretTo(*intrinsicMesh);
+
+  // TO-DO: Need to do checks on the mesh to reconcile the two
+  normalCoordinates.validate();
+
+  // TODO document/expose this somehow, rather than just doing it silently
+  if (mollifyEPS > 0) {
+    mollifyIntrinsic(*intrinsicMesh, edgeLengths, mollifyEPS);
+  }
+
+}
+
 // ======================================================
 //                 Queries & Accesses
 // ======================================================
 
 EdgeData<std::vector<SurfacePoint>> IntegerCoordinatesIntrinsicTriangulation::traceAllIntrinsicEdgesAlongInput() {
-
   CommonSubdivision& cs = getCommonSubdivision();
 
   EdgeData<std::vector<SurfacePoint>> tracedEdges(*intrinsicMesh);
@@ -121,7 +139,6 @@ std::vector<SurfacePoint> IntegerCoordinatesIntrinsicTriangulation::traceInputHa
     }
 
     return trajectory;
-
   } else {
     // Otherwise do the tracing manually
     std::vector<SurfacePoint> trajectory;
@@ -135,7 +152,6 @@ std::vector<SurfacePoint> IntegerCoordinatesIntrinsicTriangulation::traceInputHa
         Vertex intrinsicTail = intrinsicMesh->vertex(inputHe.tailVertex().getIndex());
         trajectory.push_back(SurfacePoint(intrinsicTail));
       }
-
 
       auto& path = curve.crossings;
       if (path.size() == 1 && std::get<0>(path[0]) < 0) { // shared edge
@@ -185,7 +201,6 @@ SurfacePoint IntegerCoordinatesIntrinsicTriangulation::equivalentPointOnInput(co
 bool IntegerCoordinatesIntrinsicTriangulation::checkEdgeOriginal(Edge e) const { return normalCoordinates[e] == -1; }
 
 void IntegerCoordinatesIntrinsicTriangulation::constructCommonSubdivision() {
-
   intrinsicMesh->compress();
 
   // Create the new common subdivision object
@@ -239,14 +254,12 @@ void IntegerCoordinatesIntrinsicTriangulation::constructCommonSubdivision() {
     NormalCoordinatesCompoundCurve compoundPath = traceInputEdge(eA);
 
     for (size_t iC = 0; iC < compoundPath.components.size(); iC++) {
-
       const NormalCoordinatesCurve& curve = compoundPath.components[iC];
       bool first = iC == 0;
 
       auto& path = curve.crossings;
 
       if (path.size() == 1 && std::get<0>(path[0]) < 0) {
-
         // Shared edge
         Halfedge heB = std::get<1>(path[0]);
         Edge eB = heB.edge();
@@ -310,7 +323,6 @@ void IntegerCoordinatesIntrinsicTriangulation::constructCommonSubdivision() {
         /* Disabled option: space points evenly
          *
          * } else {
-
           //std::cout << "PATH" << endl;
 
           if (first) cs.pointsAlongA[eA].push_back(aVtx[src(eA)]);
@@ -498,14 +510,12 @@ bool IntegerCoordinatesIntrinsicTriangulation::flipEdgeIfPossible(Edge e) {
     updateHalfedgeVectorsInVertex(v);
   }
 
-
   // Do callbacks
   triangulationChanged();
   invokeEdgeFlipCallbacks(e);
 
   return true;
 }
-
 
 double IntegerCoordinatesIntrinsicTriangulation::checkFlip(Edge e) {
   // Can't flip
@@ -589,7 +599,6 @@ Vertex IntegerCoordinatesIntrinsicTriangulation::insertCircumcenterOrSplitSegmen
   return newV;
 }
 
-
 // Assumes vertexAngleSums exist and are up to date
 void IntegerCoordinatesIntrinsicTriangulation::updateHalfedgeVectorsInVertex(Vertex v) {
   // stolen from intrinsic_geometry_interface.cpp
@@ -621,7 +630,6 @@ void IntegerCoordinatesIntrinsicTriangulation::updateHalfedgeVectorsInVertex(Ver
 //                Low-Level Queries
 // ======================================================
 
-
 // Takes in a halfedge of the intrinsic mesh whose edge's normal coordinate
 // is negative (meaning that it lies along an edge of the input mesh) and
 // returns the halfedge in the input mesh pointing in the same direction
@@ -650,7 +658,6 @@ IntegerCoordinatesIntrinsicTriangulation::computeFaceSplitData(Face f, Vector3 b
 
   if (normalCoordinates[f.halfedge().edge()] < 0 && normalCoordinates[f.halfedge().next().edge()] < 0 &&
       normalCoordinates[f.halfedge().next().next().edge()] < 0) {
-
     // Case 0a: face is empty, all edges shared
     // Note that this means all vertices must be shared
     //
@@ -671,7 +678,6 @@ IntegerCoordinatesIntrinsicTriangulation::computeFaceSplitData(Face f, Vector3 b
     counts = {0, 0, 0};
   } else if (normalCoordinates[f.halfedge().edge()] <= 0 && normalCoordinates[f.halfedge().next().edge()] <= 0 &&
              normalCoordinates[f.halfedge().next().next().edge()] <= 0) {
-
     insertionFace = getParentFace(f);
 
     std::array<Vector3, 3> vertexBary;
@@ -690,7 +696,6 @@ IntegerCoordinatesIntrinsicTriangulation::computeFaceSplitData(Face f, Vector3 b
       }
     }
     counts = {0, 0, 0};
-
   } else {
     // Populate the crossing locations for the edges of the triangle
     size_t iHe = 0;
@@ -701,7 +706,6 @@ IntegerCoordinatesIntrinsicTriangulation::computeFaceSplitData(Face f, Vector3 b
     std::array<std::vector<size_t>, 3> crossingID; // Where along the curve is the crossing with our halfedge he?
     for (Halfedge he : f.adjacentHalfedges()) {
       for (int ind = 0; ind < normalCoordinates[he.edge()]; ind++) {
-
         // Get the topological crossings for the curve
         NormalCoordinatesCurve crossings;
         int centerCrossInd;
@@ -971,7 +975,6 @@ IntegerCoordinatesIntrinsicTriangulation::computeFaceSplitData(Face f, Vector3 b
     insertionBary = Vector3::zero();
 
     for (size_t iP = 0; iP < intrinsicInputPairs.size(); iP++) {
-
       // if (!checkAdjacent(intrinsicInputPairs[iP].second,
       //                    SurfacePoint(inputFace, Vector3::zero()))) {
       //    std::cout << "Case: " << myCase << std::endl;
@@ -983,7 +986,6 @@ IntegerCoordinatesIntrinsicTriangulation::computeFaceSplitData(Face f, Vector3 b
       Vector3 inputCrossingBary = intrinsicInputPairs[iP].second.inFace(inputFace).faceCoords;
       insertionBary += b(iP) * inputCrossingBary;
     }
-
 
     // Very rarely, due to floating point problems, we get barycentric
     // coordinates with one big value and one small value. In this case,
@@ -1032,7 +1034,6 @@ IntegerCoordinatesIntrinsicTriangulation::computeFaceSplitData(Face f, Vector3 b
     insertionBary.z = clamp(insertionBary.z, 0., 1.);
     insertionBary /= (insertionBary.x + insertionBary.y + insertionBary.z);
 
-
     insertionFace = inputFace;
   }
 
@@ -1041,7 +1042,6 @@ IntegerCoordinatesIntrinsicTriangulation::computeFaceSplitData(Face f, Vector3 b
 
 std::pair<SurfacePoint, size_t> IntegerCoordinatesIntrinsicTriangulation::computeEdgeSplitData(Halfedge he,
                                                                                                double tBary) {
-
   if (normalCoordinates[he.edge()] > 0) {
     // If there are crossings along this edge, we have to determine where they are
 
@@ -1112,7 +1112,6 @@ std::pair<SurfacePoint, size_t> IntegerCoordinatesIntrinsicTriangulation::comput
     return std::make_pair(
         SurfacePoint(inputFace, (1 - tBarySegment) * segmentTailCoords + tBarySegment * segmentTipCoords),
         crossingSegment);
-
   } else if (normalCoordinates[he.edge()] < 0) {
     // If this is a shared edge, return a point on the shared edge
 
@@ -1190,7 +1189,6 @@ Vertex IntegerCoordinatesIntrinsicTriangulation::splitFace(Face f, Vector3 bary,
   SurfacePoint inputMeshPosition;
   std::array<int, 3> counts;
   std::tie(inputMeshPosition, counts) = computeFaceSplitData(f, bary);
-
 
   // reorder to fit order of edges incident on newVertex
   std::swap(newEdgeLengths[1], newEdgeLengths[2]);
@@ -1290,7 +1288,6 @@ Halfedge IntegerCoordinatesIntrinsicTriangulation::splitBoundaryEdge(Halfedge he
         splitFace(he.face(), heBary(he, bary));
     flipEdgeIfPossible(e);
 
-
     // Mark new edges as fixed
     // TODO FIXME this search could potentially fail on a gnarly
     // Delta-complex if the input was a self edge? Fix by passing back the
@@ -1308,7 +1305,6 @@ Halfedge IntegerCoordinatesIntrinsicTriangulation::splitBoundaryEdge(Halfedge he
         }
     }
 
-
     // TODO: invokeEdgeSplitCallbacks here
     // throw std::runtime_error("Didn't call edge split callbacks");
 
@@ -1318,7 +1314,6 @@ Halfedge IntegerCoordinatesIntrinsicTriangulation::splitBoundaryEdge(Halfedge he
 
     return newVertex;
     */
-
   } else {
     if (verbose) std::cout << "Shared Edge Split" << std::endl;
     // Hard case - edge also exists in input mesh
@@ -1545,7 +1540,6 @@ Halfedge IntegerCoordinatesIntrinsicTriangulation::splitInteriorEdge(Halfedge he
   // Update quantities
 
   for (Face f : newVertex.adjacentFaces()) {
-
     // depends on edgeLengths, faceAreas
     updateFaceBasis(f);
   }
@@ -1595,16 +1589,13 @@ Face IntegerCoordinatesIntrinsicTriangulation::removeInsertedVertex(Vertex v) {
 
   // === Flip edges until v has degree 3
 
-
   size_t iterCount = 0;
   while (v.degree() != 3 && iterCount < 10 * v.degree()) {
-
     // Find the highest priority edge to flip
     Edge bestFlipEdge;
     double bestFlipScore = -std::numeric_limits<double>::infinity();
     bool bestFlipIsLoop = false;
     for (Edge e : v.adjacentEdges()) {
-
       double flipScore = checkFlip(e);
       bool isLoop = e.firstVertex() == e.secondVertex();
 
@@ -1619,7 +1610,6 @@ Face IntegerCoordinatesIntrinsicTriangulation::removeInsertedVertex(Vertex v) {
             bestFlipScore = flipScore;
             bestFlipEdge = e;
           }
-
         } else {
           // if the one we currently have is not a loop, always take
           // this one if it is valid
@@ -1683,9 +1673,7 @@ Face IntegerCoordinatesIntrinsicTriangulation::removeInsertedVertex(Vertex v) {
   return newF;
 }
 
-
 Vertex IntegerCoordinatesIntrinsicTriangulation::moveVertex(Vertex v, Vector2 vec) {
-
   // Find the insertion location
   TraceOptions options;
   SurfacePoint startP(v);
@@ -1706,7 +1694,6 @@ Vertex IntegerCoordinatesIntrinsicTriangulation::moveVertex(Vertex v, Vector2 ve
 
   return newV;
 }
-
 
 size_t IntegerCoordinatesIntrinsicTriangulation::nSubdividedVertices() const {
   size_t nNewVertices = 0;
@@ -1756,7 +1743,6 @@ NormalCoordinatesCompoundCurve IntegerCoordinatesIntrinsicTriangulation::traceIn
   Vertex v = intrinsicMesh->vertex(vTrace.getIndex());
 
   Halfedge he = v.halfedge();
-
 
   // Loop over all halfedges of intrinsicMesh coming out of v until we
   // find the one whose corner contains the halfedge e.halfedge() of
@@ -1814,7 +1800,6 @@ NormalCoordinatesCompoundCurve IntegerCoordinatesIntrinsicTriangulation::traceIn
     he = he.next().next().twin();
   } while (he != v.halfedge());
 
-
   std::cerr << "Something somewhere went horribly wrong" << std::endl;
   he = v.halfedge();
   do {
@@ -1848,7 +1833,6 @@ IntegerCoordinatesIntrinsicTriangulation::traceNextCurve(const NormalCoordinates
   std::tie(finalPos, finalHe) = oldCurve.crossings.back();
 
   if (finalPos < 0) {
-
     // Shared edge
     Vertex v = finalHe.tipVertex();
     SurfacePoint inputPos = vertexLocations[v];
@@ -1902,7 +1886,6 @@ IntegerCoordinatesIntrinsicTriangulation::traceNextCurve(const NormalCoordinates
           GC_SAFETY_ASSERT(c == incomingCorner, "there can only be one");
 
           return {true, normalCoordinates.topologicalTrace(c.halfedge().next(), finalPos)};
-
         } else {
           throw std::runtime_error("this shouldn't be possible");
           return {false, NormalCoordinatesCurve{}};
@@ -2103,10 +2086,8 @@ Face IntegerCoordinatesIntrinsicTriangulation::getParentFace(Face f) const {
 //          Geometry and Helpers
 // ======================================================
 
-
 FaceData<Vector2> interpolateTangentVectorsB(const IntegerCoordinatesIntrinsicTriangulation& tri,
                                              const CommonSubdivision& cs, const FaceData<Vector2>& dataB) {
-
   FaceData<Vector2> interp(*cs.mesh);
 
   for (Face f : cs.mesh->faces()) {
@@ -2139,6 +2120,5 @@ FaceData<Vector2> interpolateTangentVectorsB(const IntegerCoordinatesIntrinsicTr
 
   return interp;
 }
-
 } // namespace surface
 } // namespace geometrycentral

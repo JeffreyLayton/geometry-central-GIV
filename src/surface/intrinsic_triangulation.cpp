@@ -53,6 +53,66 @@ IntrinsicTriangulation::IntrinsicTriangulation(ManifoldSurfaceMesh& mesh_, Intri
 
 IntrinsicTriangulation::~IntrinsicTriangulation() {}
 
+IntrinsicTriangulation::IntrinsicTriangulation(ManifoldSurfaceMesh& mesh_, IntrinsicGeometryInterface& inputGeom_,
+                                               const ManifoldSurfaceMesh& intrinsicMesh_,
+                                               const EdgeData<double>& edgeLengths_,
+                                               const VertexData<SurfacePoint>& vertexLocations_)
+    //Need to initialize intrinsicMesh with a copy so it can be passed to BaseGeometryInterface class ('mesh')
+    : intrinsicMesh(intrinsicMesh_.copy()), EdgeLengthGeometry(*intrinsicMesh),
+      inputMesh(mesh_), inputGeom(inputGeom_) {
+
+  if (!inputMesh.isCompressed()) {
+    throw std::runtime_error(
+        "inputMesh should be compressed before constructing an intrinsic triangulation. Call mesh.compress().");
+  }
+  if (!intrinsicMesh->isCompressed()) {
+    throw std::runtime_error(
+        "intrinsicMesh should be compressed before constructing an intrinsic triangulation. Call mesh.compress().");
+  }
+
+  // do this here, rather than in the constructer, since we need to call require() first
+  inputGeom.requireEdgeLengths();
+  this->requireEdgeLengths();
+  edgeLengths = edgeLengths_.reinterpretTo(*intrinsicMesh);
+  vertexLocations = vertexLocations_.reinterpretTo(*intrinsicMesh);
+
+  // Make sure the input mesh is triangular
+  if (!inputMesh.isTriangular()) {
+    throw std::runtime_error("intrinsic triangulation requires triangle input mesh as input");
+  }
+  // Make sure the intrinsic mesh is triangular
+  if (!intrinsicMesh->isTriangular()) {
+    throw std::runtime_error("intrinsic triangulation requires triangle intrinsic mesh as input");
+  }
+
+    // Make sure the input mesh is manifold
+  if (!inputMesh.isManifold()) {
+    throw std::runtime_error("intrinsic triangulation requires manifold input mesh as input");
+  }
+  // Make sure the intrinsic mesh is manifold
+  if (!intrinsicMesh->isManifold()) {
+    throw std::runtime_error("intrinsic triangulation requires manifold intrinsic mesh as input");
+  }
+
+  //TO-DO: Need to do checks on the mesh to reconcile the twp
+        // - Is it bijective? 
+  
+
+  // == Register the default callback which maintains marked edges
+  auto updateMarkedEdges = [&](Edge oldE, Halfedge newHe1, Halfedge newHe2) {
+    if (markedEdges.size() > 0 && markedEdges[oldE]) {
+      markedEdges[newHe1.edge()] = true;
+      markedEdges[newHe2.edge()] = true;
+    }
+  };
+  edgeSplitCallbackList.push_back(updateMarkedEdges);
+
+  // All subclasses must always keep these buffers updated as we perform operations.
+  requireHalfedgeVectorsInVertex();
+  requireHalfedgeVectorsInFace();
+  requireVertexAngleSums();
+}
+
 void IntrinsicTriangulation::setMarkedEdges(const EdgeData<bool>& markedEdges_) {
   markedEdges = markedEdges_;
   markedEdges.setDefault(false);

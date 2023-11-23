@@ -9,11 +9,9 @@
 
 namespace geometrycentral {
 namespace surface {
-
 SignpostIntrinsicTriangulation::SignpostIntrinsicTriangulation(ManifoldSurfaceMesh& mesh_,
                                                                IntrinsicGeometryInterface& inputGeom_)
     : IntrinsicTriangulation(mesh_, inputGeom_) {
-
   // == Initialize geometric data
   // TODO do we really need all these?
   inputGeom.requireEdgeLengths();
@@ -48,12 +46,36 @@ SignpostIntrinsicTriangulation::SignpostIntrinsicTriangulation(ManifoldSurfaceMe
   edgeIsOriginal.fill(true);
 }
 
+SignpostIntrinsicTriangulation::SignpostIntrinsicTriangulation(
+    ManifoldSurfaceMesh& mesh_, IntrinsicGeometryInterface& inputGeom_, const ManifoldSurfaceMesh& intrinsicMesh_,
+    const EdgeData<double>& edgeLengths_, const VertexData<SurfacePoint>& vertexLocations_,
+    const HalfedgeData<double>& signpostAngle_, const EdgeData<bool>& edgeIsOriginal_)
+    : IntrinsicTriangulation(mesh_, inputGeom_, intrinsicMesh_, edgeLengths_, vertexLocations_) {
+  // == Initialize geometric data
+  // TODO do we really need all these?
+  inputGeom.requireEdgeLengths();
+  inputGeom.requireHalfedgeVectorsInVertex();
+  inputGeom.requireHalfedgeVectorsInFace();
+  inputGeom.requireVertexAngleSums();
+
+  this->requireEdgeLengths();
+  this->requireHalfedgeVectorsInVertex();
+  this->requireHalfedgeVectorsInFace();
+  this->requireVertexAngleSums();
+
+  // TO-DO: Need to do checks on the mesh to reconcile the two
+  //  - Angles make sense (increasing)
+  //  - Validate original Edges
+
+  signpostAngle = signpostAngle_.reinterpretTo(*intrinsicMesh);
+  edgeIsOriginal = edgeIsOriginal_.reinterpretTo(*intrinsicMesh);
+}
+
 std::vector<SurfacePoint> SignpostIntrinsicTriangulation::traceIntrinsicHalfedgeAlongInput(Halfedge he) {
   return traceIntrinsicHalfedgeAlongInput(he, true);
 }
 
 std::vector<SurfacePoint> SignpostIntrinsicTriangulation::traceIntrinsicHalfedgeAlongInput(Halfedge he, bool trimEnd) {
-
   // Optimization: don't bother tracing original edges, just report them directly
   if (edgeIsOriginal[he.edge()]) {
     if (vertexLocations[he.vertex()].type != SurfacePointType::Vertex ||
@@ -69,7 +91,6 @@ std::vector<SurfacePoint> SignpostIntrinsicTriangulation::traceIntrinsicHalfedge
   // Gather values to trace
   SurfacePoint startP = vertexLocations[he.vertex()];
   Vector2 traceVec = halfedgeVector(he);
-
 
   // Do the actual tracing
   TraceOptions options;
@@ -94,14 +115,12 @@ std::vector<SurfacePoint> SignpostIntrinsicTriangulation::traceIntrinsicHalfedge
   return result.pathPoints;
 }
 
-
 std::vector<SurfacePoint> SignpostIntrinsicTriangulation::traceInputHalfedgeAlongIntrinsic(Halfedge inputHe) {
   return traceInputHalfedgeAlongIntrinsic(inputHe, true);
 }
 
 std::vector<SurfacePoint> SignpostIntrinsicTriangulation::traceInputHalfedgeAlongIntrinsic(Halfedge inputHe,
                                                                                            bool trimEnd) {
-
   // Optimization: don't bother tracing original edges, just report them directly
   // Here we need to check if the corresponding intrinsic edge is original
   Halfedge origHe = intrinsicMesh->halfedge(inputHe.getIndex()); // as usual, safe by dense construction
@@ -111,7 +130,6 @@ std::vector<SurfacePoint> SignpostIntrinsicTriangulation::traceInputHalfedgeAlon
     std::vector<SurfacePoint> result{SurfacePoint(vA), SurfacePoint(vB)};
     return result;
   }
-
 
   Vertex vTail = inputHe.tailVertex();
   Vertex vTip = inputHe.tipVertex();
@@ -147,7 +165,6 @@ std::vector<SurfacePoint> SignpostIntrinsicTriangulation::traceInputHalfedgeAlon
 }
 
 SurfacePoint SignpostIntrinsicTriangulation::equivalentPointOnIntrinsic(const SurfacePoint& pointOnInput) {
-
   // If it's a vertex, just return the matching vertex
   if (pointOnInput.type == SurfacePointType::Vertex) {
     // Get the corresponding point on the intrinsic triangulation. The getIndex() is safe in this case: these vertices
@@ -156,10 +173,8 @@ SurfacePoint SignpostIntrinsicTriangulation::equivalentPointOnIntrinsic(const Su
     return SurfacePoint(intrinsicVertex);
   }
 
-
   // TODO: could be smarter here and explicitly return edge points for shared edges.
   // Currently the code below will generally return some extremely-nearby point inside of some face.
-
 
   // Handle the general case of a point inside a face or a not-necessarily-shared edge by tracing along the surface from
   // some adjacent vertex.
@@ -212,7 +227,6 @@ SurfacePoint SignpostIntrinsicTriangulation::equivalentPointOnIntrinsic(const Su
 }
 
 SurfacePoint SignpostIntrinsicTriangulation::equivalentPointOnInput(const SurfacePoint& pointOnIntrinsic) {
-
   // If it's a vertex, just return the vertex location
   if (pointOnIntrinsic.type == SurfacePointType::Vertex) {
     return vertexLocations[pointOnIntrinsic.vertex];
@@ -220,7 +234,6 @@ SurfacePoint SignpostIntrinsicTriangulation::equivalentPointOnInput(const Surfac
 
   // TODO: could be smarter here and explicitly return edge points for shared edges.
   // Currently the code below will generally return some extremely-nearby point inside of some face.
-
 
   // Handle the general case of a point inside a face or a not-necessarily-shared edge by tracing along the surface from
   // some adjacent vertex.
@@ -264,7 +277,6 @@ SurfacePoint SignpostIntrinsicTriangulation::equivalentPointOnInput(const Surfac
   return inputPos;
 }
 
-
 // ======================================================
 // ======== Queries & Accessors
 // ======================================================
@@ -276,7 +288,6 @@ bool SignpostIntrinsicTriangulation::checkEdgeOriginal(Edge e) const { return ed
 // ======================================================
 
 bool SignpostIntrinsicTriangulation::flipEdgeIfNotDelaunay(Edge e) {
-
   // Can't flip
   if (isFixed(e)) return false;
 
@@ -322,7 +333,6 @@ bool SignpostIntrinsicTriangulation::flipEdgeIfNotDelaunay(Edge e) {
 }
 
 bool SignpostIntrinsicTriangulation::flipEdgeIfPossible(Edge e) {
-
   // Can't flip
   if (isFixed(e)) return false;
 
@@ -374,7 +384,6 @@ bool SignpostIntrinsicTriangulation::flipEdgeIfPossible(Edge e) {
 
 void SignpostIntrinsicTriangulation::flipEdgeManual(Edge e, double newLength, double forwardAngle, double reverseAngle,
                                                     bool isOrig, bool reverseFlip) {
-
   int flipCount = reverseFlip ? 3 : 1; // three flips give opposite orientaiton
   for (int i = 0; i < flipCount; i++) {
     bool flipped = intrinsicMesh->flip(e, false);
@@ -396,7 +405,6 @@ void SignpostIntrinsicTriangulation::flipEdgeManual(Edge e, double newLength, do
   invokeEdgeFlipCallbacks(e);
 }
 
-
 Vertex SignpostIntrinsicTriangulation::insertVertex(SurfacePoint newPositionOnIntrinsic) {
   switch (newPositionOnIntrinsic.type) {
   case SurfacePointType::Vertex: {
@@ -416,7 +424,6 @@ Vertex SignpostIntrinsicTriangulation::insertVertex(SurfacePoint newPositionOnIn
 }
 
 Halfedge SignpostIntrinsicTriangulation::insertVertex_edge(SurfacePoint newP) {
-
   // === (1) Gather some data about the edge we're about to insert into
 
   Edge insertionEdge = newP.edge;
@@ -436,7 +443,6 @@ Halfedge SignpostIntrinsicTriangulation::insertVertex_edge(SurfacePoint newP) {
   Vector2 posA = (1. - newP.tEdge) * vertCoords[iA] + newP.tEdge * vertCoords[(iA + 1) % 3];
   Alen = (posA - vertCoords[(iA + 2) % 3]).norm();
 
-
   if (!isOnBoundary) { // in B
     // WARNING: these code paths are not as well-tested, since they don't happen in the common insert-along-boundary
     // case
@@ -447,7 +453,6 @@ Halfedge SignpostIntrinsicTriangulation::insertVertex_edge(SurfacePoint newP) {
   } else {
     Blen = -777;
   }
-
 
   // === (2) Insert vertex
 
@@ -462,7 +467,6 @@ Halfedge SignpostIntrinsicTriangulation::insertVertex_edge(SurfacePoint newP) {
   } else {
     vertexAngleSums[newV] = 2. * M_PI;
   }
-
 
   // == (3) Assign edge lengths to the new edges
   Halfedge currHe = newHeFront;
@@ -484,7 +488,6 @@ Halfedge SignpostIntrinsicTriangulation::insertVertex_edge(SurfacePoint newP) {
 }
 
 Vertex SignpostIntrinsicTriangulation::insertVertex_face(SurfacePoint newP) {
-
   // === (1) Gather some data about the face we're about to insert into
   Face insertionFace = newP.face;
   std::array<Vector2, 3> vertCoords = vertexCoordinatesInTriangle(insertionFace);
@@ -501,7 +504,6 @@ Vertex SignpostIntrinsicTriangulation::insertVertex_face(SurfacePoint newP) {
     i++;
   }
 
-
   // === (2) Insert vertex
 
   // Put a new vertex inside of the proper intrinsic face
@@ -509,7 +511,6 @@ Vertex SignpostIntrinsicTriangulation::insertVertex_face(SurfacePoint newP) {
 
   // = Update data arrays for the new vertex
   vertexAngleSums[newV] = 2. * M_PI;
-
 
   // == (3) Assign edge lengths to the new edges
 
@@ -551,7 +552,6 @@ Face SignpostIntrinsicTriangulation::removeInsertedVertex(Vertex v) {
   // Flip edges until
   size_t iterCount = 0;
   while (v.degree() != 3) {
-
     // Find any edge we can flip
     bool anyFlipped = false;
     for (Edge e : v.adjacentEdges()) {
@@ -581,7 +581,6 @@ Halfedge SignpostIntrinsicTriangulation::splitEdge(Halfedge he, double tSplit) {
   return insertVertex_edge(SurfacePoint(he, tSplit));
 }
 
-
 // ======================================================
 // ======== Geometry and Helpers
 // ======================================================
@@ -596,7 +595,6 @@ void SignpostIntrinsicTriangulation::computeHalfedgeVectorsInVertex() {
 }
 
 void SignpostIntrinsicTriangulation::updateAngleFromCWNeighor(Halfedge he) {
-
   // Handle boundary cases
   // NOTE: This makes sense because we preserve the invariant that intrinsic boundary vertices are always located along
   // the boundary of the original mesh, which has the convention that v.halfedge() begins a ccw arc along the interior.
@@ -624,9 +622,7 @@ void SignpostIntrinsicTriangulation::updateAngleFromCWNeighor(Halfedge he) {
   halfedgeVectorsInVertex[he] = halfedgeVector(he);
 }
 
-
 void SignpostIntrinsicTriangulation::resolveNewVertex(Vertex newV, SurfacePoint intrinsicPoint) {
-
   // == (1) Compute angular coordinates for the halfedges
   // Now that we have valid edge lengths, compute halfedge angular coordinates for our new vertex
   for (Halfedge heIn : newV.incomingHalfedges()) {
@@ -649,7 +645,6 @@ void SignpostIntrinsicTriangulation::resolveNewVertex(Vertex newV, SurfacePoint 
   Halfedge inputTraceHe = newV.halfedge().twin();
   std::tuple<int, double> priorityBest{9999, 0};
   for (Halfedge heIn : newV.incomingHalfedges()) {
-
     // length score
     double thisLen = edgeLengths[heIn.edge()];
 
@@ -760,7 +755,6 @@ void SignpostIntrinsicTriangulation::resolveNewVertex(Vertex newV, SurfacePoint 
 }
 
 void SignpostIntrinsicTriangulation::constructCommonSubdivision() {
-
   intrinsicMesh->compress();
 
   // Do all the tracing
@@ -806,7 +800,6 @@ void SignpostIntrinsicTriangulation::constructCommonSubdivision() {
   }
 
   // For any input mesh edges which got edge points along them above (aka there have been vertices along the edge), sort
-
 
   for (Edge e : intrinsicMesh->edges()) {
     std::vector<SurfacePoint>& edgeTrace = traces[e];
@@ -871,9 +864,7 @@ void SignpostIntrinsicTriangulation::constructCommonSubdivision() {
     // Walk along the edge, any time we see two consecutive vertex points, there must be a
     // parallel edge there.
     for (size_t iP = 1; iP + 1 < vec.size(); iP++) {
-
       if (vec[iP - 1]->posB.type == SurfacePointType::Vertex && vec[iP]->posB.type == SurfacePointType::Vertex) {
-
         // Create a new edge-parallel intersection
         cs.subdivisionPoints.emplace_back();
         CommonSubdivisionPoint& csPoint = cs.subdivisionPoints.back();
@@ -907,7 +898,5 @@ void SignpostIntrinsicTriangulation::constructCommonSubdivision() {
     }
   }
 }
-
-
 } // namespace surface
 } // namespace geometrycentral

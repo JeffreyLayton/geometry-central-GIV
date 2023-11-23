@@ -9,6 +9,7 @@ build_debug/
 tags
 compile_commands.json
 .cache
+.vs
 
 # Prerequisites
 *.d

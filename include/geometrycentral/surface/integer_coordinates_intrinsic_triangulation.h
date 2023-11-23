@@ -15,14 +15,21 @@
 
 namespace geometrycentral {
 namespace surface {
-
 class IntegerCoordinatesIntrinsicTriangulation : public IntrinsicTriangulation {
-
 public:
   // Construct an intrinsic triangulation which sits atop this input mesh.
   // Initially, the input triangulation will just be a copy of the input mesh.
   IntegerCoordinatesIntrinsicTriangulation(ManifoldSurfaceMesh& mesh, IntrinsicGeometryInterface& inputGeom,
                                            double mollifyEPS = 1e-5);
+
+  // JEFFREY LAYTON
+  // Custom Constructor to restore existing triangulation. Assume when restored that we dont need to mullify again.
+  IntegerCoordinatesIntrinsicTriangulation(ManifoldSurfaceMesh& mesh, IntrinsicGeometryInterface& inputGeom,
+                                           const ManifoldSurfaceMesh& intrinsicMesh,
+                                           const EdgeData<double>& edgeLengths,
+                                           const VertexData<SurfacePoint>& vertexLocations,
+                                           const EdgeData<int>& edgeCoords, const HalfedgeData<int>& roundabouts,
+                                           const VertexData<int>& roundaboutDegrees, double mollifyEPS = 0.);
 
   // ======================================================
   //                   Core Members
@@ -144,8 +151,6 @@ private:
 
 FaceData<Vector2> interpolateTangentVectorsB(const IntegerCoordinatesIntrinsicTriangulation& tri,
                                              const CommonSubdivision& cs, const FaceData<Vector2>& dataB);
-
-
 } // namespace surface
 } // namespace geometrycentral
 

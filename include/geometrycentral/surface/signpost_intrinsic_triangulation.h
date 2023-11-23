@@ -7,21 +7,23 @@
 #include "geometrycentral/surface/surface_point.h"
 #include "geometrycentral/utilities/elementary_geometry.h"
 
-
 // An implmementation of the Signpost datastructure from
 //   > "Navigating Intrinsic Triangulations". Sharp, Soliman, and Crane. SIGGRAPH 2019
 
-
 namespace geometrycentral {
 namespace surface {
-
-
 class SignpostIntrinsicTriangulation : public IntrinsicTriangulation {
-
 public:
   // Construct an intrinsic triangulation which sits atop this input mesh. Initially, the input triangulation will
   // just be a copy of the input mesh.
   SignpostIntrinsicTriangulation(ManifoldSurfaceMesh& mesh, IntrinsicGeometryInterface& inputGeom);
+
+  // JEFFREY LAYTON
+  // Custom Constructor to restore existing triangulation
+  SignpostIntrinsicTriangulation(ManifoldSurfaceMesh& mesh, IntrinsicGeometryInterface& inputGeom,
+                                 const ManifoldSurfaceMesh& intrinsicMesh, const EdgeData<double>& edgeLengths,
+                                 const VertexData<SurfacePoint>& vertexLocations,
+                                 const HalfedgeData<double>& signpostAngle, const EdgeData<bool>& edgeIsOriginal);
 
   // ======================================================
   // ======== Core Members
@@ -88,7 +90,6 @@ private:
   // Override the halfedge vectors method from intrinsic geometry
   virtual void computeHalfedgeVectorsInVertex() override;
 
-
   // ======================================================
   // ======== Helpers
   // ======================================================
@@ -116,10 +117,7 @@ private:
   // of the common subdivision, in particular the `orientation` field for intersections.
   void constructCommonSubdivision() override;
 };
-
-
 } // namespace surface
 } // namespace geometrycentral
-
 
 #include "geometrycentral/surface/signpost_intrinsic_triangulation.ipp"

@@ -34,6 +34,12 @@ public:
   IntrinsicTriangulation(ManifoldSurfaceMesh& mesh, IntrinsicGeometryInterface& inputGeom);
   virtual ~IntrinsicTriangulation();
 
+  //JEFFREY LAYTON
+  //Custom Constructor to restore existing triangulation
+  IntrinsicTriangulation(ManifoldSurfaceMesh& mesh, IntrinsicGeometryInterface& inputGeom,
+                         const ManifoldSurfaceMesh& intrinsicMesh,
+                         const EdgeData<double>& edgeLengths, const VertexData<SurfacePoint>& vertexLocations);
+
   // ======================================================
   // ======== Core Members
   // ======================================================
