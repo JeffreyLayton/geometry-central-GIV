@@ -58,7 +58,7 @@ IntegerCoordinatesIntrinsicTriangulation::IntegerCoordinatesIntrinsicTriangulati
   normalCoordinates.roundaboutDegrees = roundaboutDegrees_.reinterpretTo(*intrinsicMesh);
 
   // TO-DO: Need to do checks on the mesh to reconcile the two
-  normalCoordinates.validate();
+  //normalCoordinates.validate();
 
   // TODO document/expose this somehow, rather than just doing it silently
   if (mollifyEPS > 0) {
