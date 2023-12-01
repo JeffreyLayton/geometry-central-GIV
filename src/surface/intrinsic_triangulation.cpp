@@ -57,9 +57,8 @@ IntrinsicTriangulation::IntrinsicTriangulation(ManifoldSurfaceMesh& mesh_, Intri
                                                const ManifoldSurfaceMesh& intrinsicMesh_,
                                                const EdgeData<double>& edgeLengths_,
                                                const VertexData<SurfacePoint>& vertexLocations_)
-    //Need to initialize intrinsicMesh with a copy so it can be passed to BaseGeometryInterface class ('mesh')
-    : intrinsicMesh(intrinsicMesh_.copy()), EdgeLengthGeometry(*intrinsicMesh),
-      inputMesh(mesh_), inputGeom(inputGeom_) {
+    : EdgeLengthGeometry(*intrinsicMesh_.copy().release()), inputMesh(mesh_), inputGeom(inputGeom_),
+      intrinsicMesh(dynamic_cast<ManifoldSurfaceMesh*>(&mesh)) {
 
   if (!inputMesh.isCompressed()) {
     throw std::runtime_error(
