@@ -22,6 +22,7 @@ SET(SRCS
   surface/extrinsic_geometry_interface.cpp
   surface/exact_geodesic_helpers.cpp
   surface/exact_geodesics.cpp
+  surface/embed_convex.cpp
   surface/embedded_geometry_interface.cpp
   surface/edge_length_geometry.cpp
   surface/vertex_position_geometry.cpp
@@ -40,6 +41,7 @@ SET(SRCS
   surface/integer_coordinates_intrinsic_triangulation.cpp
   surface/common_subdivision.cpp
   surface/surface_point.cpp
+  surface/barycentric_vector.cpp
   surface/fast_marching_method.cpp
   surface/intersection.cpp
   surface/uniformize.cpp
