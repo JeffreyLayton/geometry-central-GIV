@@ -394,7 +394,7 @@ void IntrinsicTriangulation::flipToDelaunay() {
     edgesToCheck.push_back(e);
   }
 
-  size_t nFlips = 0;
+  // size_t nFlips = 0; // unused
   while (!edgesToCheck.empty()) {
 
     // Get the top element from the queue of possibily non-Delaunay edges
@@ -407,7 +407,7 @@ void IntrinsicTriangulation::flipToDelaunay() {
     if (!wasFlipped) continue;
 
     // Handle the aftermath of a flip
-    nFlips++;
+    // nFlips++;
 
     // Add neighbors to queue, as they may need flipping now
     Halfedge he = e.halfedge();
