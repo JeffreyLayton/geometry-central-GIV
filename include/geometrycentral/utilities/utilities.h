@@ -115,6 +115,9 @@ void removeFromVector(std::vector<T>& vec, O& obj) {
 extern std::random_device util_random_device;
 extern std::mt19937 util_mersenne_twister;
 
+inline void setRandSeed(uint32_t seed) { util_mersenne_twister.seed(seed); }
+inline void clearRandSeed() { util_mersenne_twister.seed(util_random_device()); }
+
 inline double unitRand() {
   std::uniform_real_distribution<double> dist(0., 1.);
   return dist(util_mersenne_twister);
