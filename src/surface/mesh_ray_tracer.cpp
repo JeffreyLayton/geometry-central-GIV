@@ -1,99 +1,105 @@
 #include "geometrycentral/surface/mesh_ray_tracer.h"
 
-#include <vector>
-
-using std::cout;
-using std::endl;
+#include "nanort.h"
 
 namespace geometrycentral {
 namespace surface {
 
-MeshRayTracer::MeshRayTracer(Geometry<Euclidean>* geometry_) {
-  mesh = geometry_->getMesh();
-  geometry = geometry_;
+class MeshRayTracer::Impl {
+public:
+  Impl(EmbeddedGeometryInterface& geom) {
+    geom.requireVertexPositions();
 
-  buildBVH();
-}
-
-void MeshRayTracer::buildBVH() {
-  cout << "Building BVH for mesh..." << endl;
-
-  nanort::BVHBuildOptions<double> options; // Use default options
-
-  if (!mesh->isTriangular()) {
-    throw std::runtime_error("Can only trace rays on triangle meshes.");
-  }
-
-  // Build face and vertex arrays
-  rawPositions.resize(mesh->nVertices() * 3);
-  rawFaces.resize(mesh->nFaces() * 3);
-  VertexData<size_t> vInd = mesh->getVertexIndices();
-  for (Vertex v : mesh->vertices()) {
-    unsigned int i = 3 * vInd[v];
-    Vector3 p = geometry->position(v);
-    for (unsigned int j = 0; j < 3; j++) rawPositions[i + j] = p[j];
-  }
-  FaceData<size_t> fInd = mesh->getFaceIndices();
-  for (Face f : mesh->faces()) {
-    unsigned int i = 3 * fInd[f];
-    unsigned int j = 0;
-    for (Vertex v : f.adjacentVertices()) {
-      rawFaces[i + j] = vInd[v];
-      j++;
+    std::vector<Vector3> positions;
+    positions.reserve(geom.mesh.nVertices());
+    for (Vertex v : geom.mesh.vertices()) {
+      positions.push_back(geom.vertexPositions[v]);
     }
+
+    std::vector<std::vector<size_t>> faces;
+    faces.reserve(geom.mesh.nFaces());
+    for (Face f : geom.mesh.faces()) {
+      std::vector<size_t> tri;
+      for (Vertex v : f.adjacentVertices()) tri.push_back(v.getIndex());
+      if (tri.size() != 3) throw std::runtime_error("MeshRayTracer: mesh must be triangulated");
+      faces.push_back(std::move(tri));
+    }
+
+    geom.unrequireVertexPositions();
+    build(positions, faces);
   }
 
-  // Construct nanort mesh objects
-  nanort::TriangleMesh<double> triangle_mesh(rawPositions.data(), rawFaces.data(), sizeof(double) * 3);
-  nanort::TriangleSAHPred<double> triangle_pred(rawPositions.data(), rawFaces.data(),
-                                                sizeof(double) * 3); // still have no idea what this does
-  bool ret = accel.Build(mesh->nFaces(), options, triangle_mesh, triangle_pred);
-  if (!ret) {
-    throw std::runtime_error("BVH construction failed");
+  Impl(const SimplePolygonMesh& mesh) { build(mesh.vertexCoordinates, mesh.polygons); }
+
+  void build(const std::vector<Vector3>& positions, const std::vector<std::vector<size_t>>& faces) {
+    double INF = std::numeric_limits<double>::infinity();
+    Vector3 bboxMin{INF, INF, INF};
+    Vector3 bboxMax{-INF, -INF, -INF};
+
+    rawPositions.reserve(positions.size() * 3);
+    for (const Vector3& p : positions) {
+      rawPositions.push_back(p.x);
+      rawPositions.push_back(p.y);
+      rawPositions.push_back(p.z);
+      bboxMin = componentwiseMin(bboxMin, p);
+      bboxMax = componentwiseMax(bboxMax, p);
+    }
+    lengthScale = norm(bboxMax - bboxMin);
+
+    rawFaces.reserve(faces.size() * 3);
+    for (const std::vector<size_t>& f : faces) {
+      if (f.size() != 3) throw std::runtime_error("MeshRayTracer: mesh must be triangulated");
+      for (size_t idx : f) rawFaces.push_back(static_cast<unsigned int>(idx));
+    }
+
+    if (rawFaces.empty()) return; // empty mesh — all queries will miss
+
+    nanort::TriangleMesh<double> nanortMesh(rawPositions.data(), rawFaces.data(), sizeof(double) * 3);
+    nanort::TriangleSAHPred<double> nanortPred(rawPositions.data(), rawFaces.data(), sizeof(double) * 3);
+    bool ok = accel.Build(static_cast<unsigned int>(rawFaces.size() / 3), nanortMesh, nanortPred);
+    if (!ok) throw std::runtime_error("MeshRayTracer: BVH construction failed");
   }
 
-  nanort::BVHBuildStatistics stats = accel.GetStatistics();
+  RayHitResult trace(Vector3 origin, Vector3 dir) const {
+    if (rawFaces.empty()) return {};
 
-  cout << "BVH statistics:" << endl;
-  cout << "    # of leaf   nodes: " << stats.num_leaf_nodes << endl;
-  cout << "    # of branch nodes: " << stats.num_branch_nodes << endl;
-  cout << "    Max tree depth   : " << stats.max_tree_depth << endl;
+    nanort::Ray<double> ray;
+    ray.min_t = 1e-6 * lengthScale;
+    ray.max_t = 1e1 * lengthScale;
+    for (int i = 0; i < 3; i++) ray.org[i] = origin[i];
+    for (int i = 0; i < 3; i++) ray.dir[i] = dir[i];
 
-  double lengthScale = geometry->lengthScale();
-  tFar = lengthScale * 1e3;
-}
+    nanort::TriangleIntersection<double> isect;
+    nanort::TriangleIntersector<double> intersector(rawPositions.data(), rawFaces.data(), sizeof(double) * 3);
+    bool hit = accel.Traverse(ray, intersector, &isect);
 
-RayHitResult MeshRayTracer::trace(Vector3 start, Vector3 dir) {
-  // Create the ray
-  nanort::Ray<double> ray;
-  ray.min_t = 0.0;
-  ray.max_t = tFar;
-  for (int i = 0; i < 3; i++) ray.org[i] = start[i];
-  dir = unit(dir);
-  for (int i = 0; i < 3; i++) ray.dir[i] = dir[i];
+    if (!hit) return {};
 
-  // Compute the intersection
-  nanort::BVHTraceOptions trace_options;
-  nanort::TriangleIntersector<double> triangle_intersector(rawPositions.data(), rawFaces.data(), sizeof(double) * 3);
-  bool hit = accel.Traverse(ray, trace_options, triangle_intersector);
-
-  // Return the result
-  if (hit) {
     RayHitResult result;
     result.hit = true;
-    result.tHit = triangle_intersector.intersection.t;
-    result.face = mesh->face(triangle_intersector.intersection.prim_id);
-
-    // Convert barycentric formats
-    double U = triangle_intersector.intersection.u;
-    double V = triangle_intersector.intersection.v;
-    result.baryCoords = Vector3{1.0 - U - V, U, V};
-
+    result.t = isect.t;
+    result.faceIndex = static_cast<size_t>(isect.prim_id);
+    result.faceCoords = {1.0 - isect.u - isect.v, isect.u, isect.v};
     return result;
-  } else {
-    return RayHitResult{false, std::numeric_limits<double>::quiet_NaN(), Face(), Vector3{-1.0, -1.0, -1.0}};
   }
+
+  std::vector<double> rawPositions;
+  std::vector<unsigned int> rawFaces;
+  nanort::BVHAccel<double> accel;
+  double lengthScale = 1.0;
+};
+
+
+MeshRayTracer::MeshRayTracer(EmbeddedGeometryInterface& geom) : impl(new Impl(geom)) {}
+MeshRayTracer::MeshRayTracer(const SimplePolygonMesh& mesh) : impl(new Impl(mesh)) {}
+MeshRayTracer::~MeshRayTracer() = default;
+
+RayHitResult MeshRayTracer::trace(Vector3 origin, Vector3 dir) const { return impl->trace(origin, dir); }
+
+SurfacePoint toSurfacePoint(const RayHitResult& hit, SurfaceMesh& mesh) {
+  if (!hit.hit) throw std::runtime_error("toSurfacePoint: RayHitResult is not a hit");
+  return SurfacePoint(mesh.face(hit.faceIndex), hit.faceCoords);
 }
 
 } // namespace surface
-}; // namespace geometrycentral
+} // namespace geometrycentral

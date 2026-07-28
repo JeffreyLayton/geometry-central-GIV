@@ -14,6 +14,7 @@ SET(SRCS
   surface/surface_mesh_factories.cpp
   surface/meshio.cpp
   surface/simple_polygon_mesh.cpp
+  surface/mesh_ray_tracer.cpp
   surface/rich_surface_mesh_data.cpp
 
   surface/base_geometry_interface.cpp
@@ -26,12 +27,14 @@ SET(SRCS
   surface/embedded_geometry_interface.cpp
   surface/edge_length_geometry.cpp
   surface/vertex_position_geometry.cpp
+  surface/marching_triangles.cpp
   surface/mutation_manager.cpp
   surface/mesh_graph_algorithms.cpp
   surface/direction_fields.cpp
   surface/heat_method_distance.cpp
   surface/vector_heat_method.cpp
   surface/signed_heat_method.cpp
+  surface/polygon_mesh_heat_solver.cpp
   surface/geodesic_centroidal_voronoi_tessellation.cpp
   surface/trace_geodesic.cpp
   surface/normal_coordinates.cpp
@@ -59,8 +62,6 @@ SET(SRCS
   surface/quadric_error_simplification.cpp
   surface/subdivide.cpp
   surface/poisson_disk_sampler.cpp
-  #surface/detect_symmetry.cpp
-  #surface/mesh_ray_tracer.cpp
   
   pointcloud/point_cloud.cpp
   pointcloud/neighborhoods.cpp
@@ -99,7 +100,6 @@ SET(HEADERS
   ${INCLUDE_ROOT}/surface/barycentric_coordinate_helpers.ipp
   ${INCLUDE_ROOT}/surface/base_geometry_interface.h
   ${INCLUDE_ROOT}/surface/boundary_first_flattening.h
-  ${INCLUDE_ROOT}/surface/detect_symmetry.h
   ${INCLUDE_ROOT}/surface/direction_fields.h
   ${INCLUDE_ROOT}/surface/edge_length_geometry.h
   ${INCLUDE_ROOT}/surface/edge_length_geometry.ipp
@@ -122,9 +122,9 @@ SET(HEADERS
   ${INCLUDE_ROOT}/surface/manifold_surface_mesh.h
   ${INCLUDE_ROOT}/surface/meshio.h
   ${INCLUDE_ROOT}/surface/mesh_graph_algorithms.h
-  ${INCLUDE_ROOT}/surface/mesh_ray_tracer.h
   ${INCLUDE_ROOT}/surface/parameterize.h
   ${INCLUDE_ROOT}/surface/poisson_disk_sampler.h
+  ${INCLUDE_ROOT}/surface/polygon_mesh_heat_solver.h
   ${INCLUDE_ROOT}/surface/quadric_error_simplification.h
   ${INCLUDE_ROOT}/surface/remeshing.h
   ${INCLUDE_ROOT}/surface/rich_surface_mesh_data.h
@@ -134,6 +134,7 @@ SET(HEADERS
   ${INCLUDE_ROOT}/surface/signpost_intrinsic_triangulation.h
   ${INCLUDE_ROOT}/surface/signpost_intrinsic_triangulation.ipp
   ${INCLUDE_ROOT}/surface/simple_idt.h
+  ${INCLUDE_ROOT}/surface/mesh_ray_tracer.h
   ${INCLUDE_ROOT}/surface/simple_polygon_mesh.h
   ${INCLUDE_ROOT}/surface/stripe_patterns.h
   ${INCLUDE_ROOT}/surface/subdivide.h
@@ -174,11 +175,21 @@ SET(HEADERS
 # Create a single library for the project
 add_library(geometry-central ${SRCS} ${HEADERS})
 
-# Includes from this project
-target_include_directories(geometry-central PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../include")
+target_include_directories(geometry-central
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 
-# Add all includes and link libraries from dependencies, which were populated in deps/CMakeLists.txt
-target_link_libraries(geometry-central PUBLIC ${GC_DEP_LIBS})
+target_link_libraries(geometry-central
+  PUBLIC
+    $<BUILD_INTERFACE:Eigen3::Eigen>
+    $<BUILD_INTERFACE:happly>
+  PRIVATE
+    $<BUILD_INTERFACE:nanoflann>
+    $<BUILD_INTERFACE:nanort>)
+
+# Keep build-tree dependency targets out of the installed export. The installed
+# package adds Eigen3::Eigen back after calling find_dependency(Eigen3).
 
 # Set compiler properties for the library
 target_compile_features(geometry-central PUBLIC cxx_std_11)

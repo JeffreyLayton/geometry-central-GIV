@@ -67,11 +67,12 @@ nav:
     - Geometry: 
       - 'Overview' : 'surface/geometry/geometry.md'
       - 'Quantities' : 'surface/geometry/quantities.md'
-    - Utilities: 
+    - Utilities:
       - 'Simple Polygon Mesh' : 'surface/utilities/simple_polygon_mesh.md'
       - 'I/O' : 'surface/utilities/io.md'
       - 'Surface Point' : 'surface/utilities/surface_point.md'
       - 'Barycentric Vector': 'surface/utilities/barycentric_vector.md'
+      - 'Mesh Ray Tracer' : 'surface/utilities/mesh_ray_tracer.md'
     - Algorithms: 
       - 'Direction Fields' : 'surface/algorithms/direction_fields.md'
       - 'Embedding' : 'surface/algorithms/embedding.md'
@@ -80,6 +81,7 @@ nav:
       - 'Geodesic Centroidal Voronoi Tessellations' : 'surface/algorithms/geodesic_voronoi_tessellations.md'
       - 'Intersection' : 'surface/algorithms/intersection.md'
       - 'Parameterization' : 'surface/algorithms/parameterization.md'
+      - 'Polygon Mesh Heat Distance & Transport' : 'surface/algorithms/polygon_heat_solver.md'
       - 'Remeshing' : 'surface/algorithms/remeshing.md'
       - 'Robust Geometry' : 'surface/algorithms/robust_geometry.md'
       - 'Signed Heat Method' : 'surface/algorithms/signed_heat_method.md'
@@ -106,8 +108,9 @@ nav:
     - 'Matrix Types' : 'numerical/matrix_types.md'
     - 'Linear Algebra Utilities' : 'numerical/linear_algebra_utilities.md'
     - 'Linear Solvers' : 'numerical/linear_solvers.md'
-  - Utilities: 
+  - Utilities:
     - 'Miscellaneous' : 'utilities/miscellaneous.md'
     - 'Vector2' : 'utilities/vector2.md'
     - 'Vector3' : 'utilities/vector3.md'
+    - 'Nearest Neighbors' : 'utilities/nearest_neighbors.md'
     - 'Utilities for Eigen Interoperability' : 'utilities/eigenmap.md'

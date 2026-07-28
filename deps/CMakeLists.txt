@@ -72,7 +72,7 @@ else()
       FetchContent_Declare(
           eigen
           GIT_REPOSITORY  https://gitlab.com/libeigen/eigen.git
-          GIT_TAG         3.3.8
+          GIT_TAG         3.3.9
           SOURCE_DIR      "${CMAKE_CURRENT_BINARY_DIR}/eigen-src"
           BINARY_DIR      "${CMAKE_CURRENT_BINARY_DIR}/eigen-build"
       )
@@ -84,6 +84,7 @@ else()
           eigen3checker(${eigen_SOURCE_DIR} 3.3)
       endif()
       message(STATUS "--    success. Downloaded Eigen in ${eigen_SOURCE_DIR}")
+      set(GC_EIGEN_WAS_DOWNLOADED TRUE PARENT_SCOPE)
     endif()
   endif()
   add_library (eigen INTERFACE)
@@ -156,13 +157,6 @@ endif()
 if (NOT TARGET nanoflann)
     add_library(nanoflann INTERFACE)
     target_include_directories(nanoflann INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/nanoflann/include>)
-
-    # For backward compatibility, we need to make a symlink in the build directory.
-    file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include/nanoflann)
-    file(CREATE_LINK
-        ${CMAKE_CURRENT_SOURCE_DIR}/nanoflann/include/nanoflann.hpp
-        ${CMAKE_CURRENT_BINARY_DIR}/include/nanoflann/nanoflann.hpp SYMBOLIC)
-    target_include_directories(nanoflann INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
 endif()
 
 if (NOT TARGET happly)

@@ -289,7 +289,7 @@ Different curvatures are available depending on whether geometry is intrinsic or
     
     ##### face Gaussian curvature
 
-    The [_Gaussian curvature_](https://en.wikipedia.org/wiki/Gaussian_curvature) $K$ at a face, defined via the rescaled angle defect in the face $K_f = \pi - \sum \tilde{\theta}_i$, where $\tilde{\theta}_i$ are the _rescaled_ corner angles (as in `cornerScaledAngles`) incident on the face.
+    The [_Gaussian curvature_](https://en.wikipedia.org/wiki/Gaussian_curvature) $K$ at a face, defined via the rescaled angle defect in the face $K_f = -\pi + \sum \tilde{\theta}_i$, where $\tilde{\theta}_i$ are the _rescaled_ corner angles (as in `cornerScaledAngles`) incident on the face.
 
     Should be interpreted as an _integrated_ Gaussian curvature, giving the total curvature inside of the face. A corresponding curvature-per-unit-area can be computed by dividing by the area of the face.
 
@@ -426,7 +426,7 @@ All operators are indexed over mesh elements according to the natural iteration 
 
     A $|V| \times |V|$ real matrix. Always symmetric and positive semi-definite. If and only the underlying geometry is _Delaunay_, the matrix will furthermore have all negative off-diagonal entries, satisfy a maximum principle, and be an _M-matrix_.
 
-    This is the _weak_ Laplace operator, if we use it to evalutae $\mathsf{y} \leftarrow \mathsf{L} \mathsf{x}$, $\mathsf{x}$ should hold _pointwise_ quantities at vertices, and the result $\mathsf{y}$ will contain _integrated_ values of the result in the neighborhood of each vertex. If used to solve a Poisson problem, a mass matrix (such as the lumped or Galerkin mass matrices below) are likely necessary on the right hand side.
+    This is the _weak_ Laplace operator, if we use it to evaluate $\mathsf{y} \leftarrow \mathsf{L} \mathsf{x}$, $\mathsf{x}$ should hold _pointwise_ quantities at vertices, and the result $\mathsf{y}$ will contain _integrated_ values of the result in the neighborhood of each vertex. If used to solve a Poisson problem, a mass matrix (such as the lumped or Galerkin mass matrices below) are likely necessary on the right hand side.
 
     Only valid on triangular meshes.
 
@@ -543,6 +543,68 @@ In graphics and geometry processing, Crouzeix-Raviart elements have been used, f
     - **member:** `Eigen::SparseMatrix<double> IntrinsicGeometryInterface::crouzeixRaviartConnectionLaplacian`
     - **require:** `void IntrinsicGeometryInterface::requireCrouzeixRaviartConnectionLaplacian()`
 
+## Polygon mesh operators
+
+The following quantities are designed for general polygon meshes, and are defined for any `EmbeddedGeometryInterface`. On triangle meshes, they will reduce to the classical discrete exterior calculus & finite element operators. 
+
+The polygon operators are based on [Bunge et al.'s _Polygon Laplacian Made Simple_](https://www.cs.jhu.edu/~misha/MyPapers/EUROG20.pdf), whose discretization is based on virtual refinement of the polygon mesh; the code is based on [Astrid Bunge and Mario Botsch's implementation of their paper](https://github.com/mbotsch/polygon-laplacian). The method builds local operators whose matrices are assembled per-polygon, so they will work out-of-the-box on non-manifold meshes (but no guarantees are provided!) 
+
+All operators are indexed over mesh elements according to the natural iteration order of the elements, or equivalently the indices from `SurfaceMesh::getVertexIndices()` (etc).
+
+??? func "polygon mesh Laplacian"
+    
+    ##### polygon mesh Laplacian
+
+    The discrete Laplace operator acting on polygon meshes, using Bunge et al.'s virtual refinement method in _Polygon Laplacian Made Simple_.
+
+    A $|V| \times |V|$ real matrix. Always symmetric and positive semi-definite. On triangle meshes, this polygon Laplacian becomes the standard cotan Laplacian. 
+
+    This is the _weak_ Laplace operator.
+
+    Only valid on an `EmbeddedGeometryInterface`.
+
+    - **member:** `Eigen::SparseMatrix<double> EmbeddedGeometryInterface::simplePolygonLaplacian`
+    - **require:** `void EmbeddedGeometryInterface::requireSimplePolygonLaplacian()`
+
+??? func "polygon mesh vertex lumped mass matrix"
+
+    ##### polygon mesh vertex lumped mass matrix
+
+    A $|V| \times |V|$ real diagonal matrix, using Bunge et al.'s virtual refinement method in _Polygon Laplacian Made Simple_. Obtained by setting each diagonal entry to the row sum in the Galerkin mass matrix. Bunge et al. note that the lumped mass matrix gives better results than the unlumped Galerkin mass matrix for most applications.
+
+    Only valid on an `EmbeddedGeometryInterface`.
+
+    - **member:** `Eigen::SparseMatrix<double> EmbeddedGeometryInterface::simplePolygonVertexLumpedMassMatrix`
+    - **require:** `void EmbeddedGeometryInterface::requireSimplePolygonVertexLumpedMassMatrix()`
+
+??? func "polygon mesh vertex Galerkin mass matrix"
+
+    ##### polygon mesh vertex Galerkin mass matrix
+
+    A $|V| \times |V|$ real matrix, using Bunge et al.'s virtual refinement method in _Polygon Laplacian Made Simple_.
+
+    Only valid on an `EmbeddedGeometryInterface`.
+
+    - **member:** `Eigen::SparseMatrix<double> EmbeddedGeometryInterface::simplePolygonVertexGalerkinMassMatrix`
+    - **require:** `void EmbeddedGeometryInterface::requireSimplePolygonVertexGalerkinMassMatrix()`
+
+
+??? func "polygon mesh vertex connection Laplacian"
+
+    ##### polygon mesh vertex connection Laplacian
+
+    A discrete connection Laplacian operator, which applies to vector fields defined in vertex tangent spaces; based on the Laplacian from Bunge et al.'s _Polygon Laplacian Made Simple_.
+
+    Always symmetric and positive-definite.
+
+    A $|V| \times |V|$ complex matrix.
+
+    Given a complex vector $\mathsf{x}$ of tangent vectors at vertices, apply the operator by multiplying $\mathsf{L} * \mathsf{x}$.
+
+    Only valid on an `EmbeddedGeometryInterface`.
+
+    - **member:** `Eigen::SparseMatrix<std::complex<double>> EmbeddedGeometryInterface::simplePolygonVertexConnectionLaplacian`
+    - **require:** `void EmbeddedGeometryInterface::requireSimplePolygonVertexConnectionLaplacian()`
 
 ## Extrinsic angles
 
@@ -591,6 +653,16 @@ These quantities depend explicitly on an embedding in 3D space (better known as 
 
     - **member:** `VertexData<Vector3> EmbeddedGeometryInterface::vertexPositions`
     - **require:** `void EmbeddedGeometryInterface::requireVertexPositions()`
+
+
+??? func "face centroid"
+
+    ##### face centroid
+
+    The centroid (geometric center) of each face, computed as the average of its adjacent vertex positions. Works for faces of any degree (triangles, quads, polygons, etc.).
+
+    - **member:** `FaceData<Vector3> EmbeddedGeometryInterface::faceCentroids`
+    - **require:** `void EmbeddedGeometryInterface::requireFaceCentroids()`
 
 
 ??? func "face normal"

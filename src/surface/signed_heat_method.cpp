@@ -32,8 +32,9 @@ VertexData<double> SignedHeatSolver::computeDistance(const std::vector<Curve>& c
                                                      const std::vector<SurfacePoint>& points,
                                                      const SignedHeatOptions& options) {
 
-  Vector<std::complex<double>> Xt = integrateVectorHeatFlow(curves, points, options);
-  return integrateVectorField(Xt, curves, points, options);
+  std::vector<Curve> processedCurves = preprocessCurves(curves);
+  Vector<std::complex<double>> Xt = integrateVectorHeatFlow(processedCurves, points, options);
+  return integrateVectorField(Xt, processedCurves, points, options);
 }
 
 VertexData<double> SignedHeatSolver::computeDistance(const std::vector<Curve>& curves,
@@ -54,6 +55,34 @@ void SignedHeatSolver::setDiffusionTimeCoefficient(double tCoef_) {
   timeUpdated = true;
   shortTime = tCoef_ * meanNodeDistance * meanNodeDistance;
   doubleVectorOp = doubleMassMat + shortTime * doubleConnectionLaplacian;
+}
+
+std::vector<Curve> SignedHeatSolver::preprocessCurves(const std::vector<Curve>& curves) const {
+  // If there are gaps in the curves (i.e. curves are not sampled densely along the mesh), then there is an ambiguity of
+  // how to connect up the points into curves.
+  // Rather than, for example, automatically connecting up curves using a geodesic path -- which would impose curves
+  // that the user might not have meant -- we simply break up the input curves into components that do reflect how
+  // they're sampled. (This may, however, create curves with fewer than 2 nodes, which would get ignored.)
+  std::vector<Curve> newCurves;
+  for (const Curve& curve : curves) {
+    newCurves.emplace_back();
+    newCurves.back().isSigned = curve.isSigned;
+    size_t nNodes = curve.nodes.size();
+    for (size_t i = 0; i < nNodes - 1; i++) {
+      const SurfacePoint& pA = curve.nodes[i];
+      const SurfacePoint& pB = curve.nodes[i + 1];
+      newCurves.back().nodes.push_back(pA);
+      Face commonFace = sharedFace(pA, pB);
+      if (commonFace == Face()) {
+        // Create new curve
+        newCurves.emplace_back();
+        newCurves.back().isSigned = curve.isSigned;
+      }
+    }
+    // Don't forget the last point
+    newCurves.back().nodes.push_back(curve.nodes[nNodes - 1]);
+  }
+  return newCurves;
 }
 
 Vector<std::complex<double>> SignedHeatSolver::integrateVectorHeatFlow(const std::vector<Curve>& curves,
@@ -113,7 +142,7 @@ Vector<std::complex<double>> SignedHeatSolver::integrateVectorHeatFlow(const std
           for (Edge e : f.adjacentEdges()) {
             size_t eIdx = geom.edgeIndices[e];
             double w = scalarCrouzeixRaviart(b, e);
-            BarycentricVector heVec = barycentricVectorInFace(e.halfedge(), f);
+            BarycentricVector heVec(e.halfedge(), f);
             heVec /= heVec.norm(geom);
             BarycentricVector heVecN = heVec.rotate90(geom);
             triplets.emplace_back(m, eIdx, w * dot(geom, heVec, segTangent));
@@ -162,8 +191,8 @@ VertexData<double> SignedHeatSolver::integrateVectorField(const Vector<std::comp
       Halfedge heA = c.halfedge();
       Halfedge heB = heA.next().next();
       BarycentricVector Yj = Y[f];
-      BarycentricVector e1 = barycentricVectorInFace(heA, f);
-      BarycentricVector e2 = -barycentricVectorInFace(heB, f);
+      BarycentricVector e1(heA, f);
+      BarycentricVector e2 = -BarycentricVector(heB, f);
       double cotTheta1 = geom.halfedgeCotanWeights[heA];
       double cotTheta2 = geom.halfedgeCotanWeights[heB];
       double w1 = cotTheta1 * dot(geom, e1, Yj);
@@ -252,11 +281,11 @@ void SignedHeatSolver::buildUnsignedCurveSource(const Curve& curve, Vector<std::
       // Ordinarily, "double-sided" vector information would cancel out along the edge. So in each face, "smear"
       // the info out a bit by parallel-transporting the initial vectors to other edges in adjacent faces.
       Face f = he.face();
-      BarycentricVector segment = barycentricVectorInFace(he, f);
+      BarycentricVector segment(he, f);
       BarycentricVector segNormal = segment.rotate90(geom);
       for (Edge e : f.adjacentEdges()) {
         if (e == commonEdge) continue;
-        BarycentricVector edgeVec = barycentricVectorInFace(e.halfedge(), f);
+        BarycentricVector edgeVec(e.halfedge(), f);
         edgeVec /= edgeVec.norm(geom);
         double sinTheta = dot(geom, segment, edgeVec);
         double cosTheta = dot(geom, segNormal, edgeVec);
@@ -698,23 +727,6 @@ std::complex<double> SignedHeatSolver::projectedNormal(const SurfacePoint& pA, c
   return normal;
 }
 
-BarycentricVector SignedHeatSolver::barycentricVectorInFace(const Halfedge& he_, const Face& f) const {
-
-  int eIdx = 0;
-  double sign = 0.;
-  for (Halfedge he : f.adjacentHalfedges()) {
-    if (he.edge() == he_.edge()) {
-      sign = (he.tailVertex() == he_.tailVertex() && he.tipVertex() == he_.tipVertex()) ? 1. : -1.;
-      break;
-    }
-    eIdx++;
-  }
-  Vector3 faceCoords = {0, 0, 0};
-  faceCoords[(eIdx + 1) % 3] = 1;
-  faceCoords[eIdx] = -1;
-  return BarycentricVector(f, sign * faceCoords);
-}
-
 FaceData<BarycentricVector> SignedHeatSolver::sampleAtFaceBarycenters(const Vector<std::complex<double>>& Xt) {
 
   geom.requireEdgeIndices();
@@ -724,7 +736,7 @@ FaceData<BarycentricVector> SignedHeatSolver::sampleAtFaceBarycenters(const Vect
     Vector3 faceCoords = {0, 0, 0};
     for (Halfedge he : f.adjacentHalfedges()) {
       size_t eIdx = geom.edgeIndices[he.edge()];
-      BarycentricVector e1 = barycentricVectorInFace(he, f);
+      BarycentricVector e1(he, f);
       if (!he.orientation()) e1 *= -1;
       BarycentricVector e2 = e1.rotate90(geom);
       e1 /= e1.norm(geom);

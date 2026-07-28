@@ -104,10 +104,14 @@ set(TEST_SRCS
   src/intrinsic_triangulation_test.cpp
   src/linear_algebra_test.cpp
   src/load_test_meshes.cpp
+  src/marching_triangles_test.cpp
   src/point_cloud_test.cpp
   src/poisson_disk_sampler_test.cpp
+  src/polygon_operators_test.cpp
+  src/flip_geodesic_test.cpp
   src/stl_reader_test.cpp
   src/surface_misc_test.cpp
+  src/utilities_test.cpp
 )
 
 add_executable(geometry-central-test "${TEST_SRCS}")
