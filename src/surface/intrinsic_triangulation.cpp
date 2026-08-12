@@ -8,14 +8,11 @@
 #include <iomanip>
 #include <queue>
 
-
 namespace geometrycentral {
 namespace surface {
-
 IntrinsicTriangulation::IntrinsicTriangulation(ManifoldSurfaceMesh& mesh_, IntrinsicGeometryInterface& inputGeom_)
     : EdgeLengthGeometry(*mesh_.copy().release()), inputMesh(mesh_), inputGeom(inputGeom_),
       intrinsicMesh(dynamic_cast<ManifoldSurfaceMesh*>(&mesh)) {
-
   if (!inputMesh.isCompressed()) {
     throw std::runtime_error(
         "mesh should be compressed before constructing an intrinsic triangulation. Call mesh.compress().");
@@ -59,7 +56,6 @@ IntrinsicTriangulation::IntrinsicTriangulation(ManifoldSurfaceMesh& mesh_, Intri
                                                const VertexData<SurfacePoint>& vertexLocations_)
     : EdgeLengthGeometry(*intrinsicMesh_.copy().release()), inputMesh(mesh_), inputGeom(inputGeom_),
       intrinsicMesh(dynamic_cast<ManifoldSurfaceMesh*>(&mesh)) {
-
   if (!inputMesh.isCompressed()) {
     throw std::runtime_error(
         "inputMesh should be compressed before constructing an intrinsic triangulation. Call mesh.compress().");
@@ -84,6 +80,7 @@ IntrinsicTriangulation::IntrinsicTriangulation(ManifoldSurfaceMesh& mesh_, Intri
     throw std::runtime_error("intrinsic triangulation requires triangle intrinsic mesh as input");
   }
 
+  // Make sure the input mesh is manifold
   if (!inputMesh.isManifold()) {
     throw std::runtime_error("intrinsic triangulation requires manifold input mesh as input");
   }
@@ -92,9 +89,8 @@ IntrinsicTriangulation::IntrinsicTriangulation(ManifoldSurfaceMesh& mesh_, Intri
     throw std::runtime_error("intrinsic triangulation requires manifold intrinsic mesh as input");
   }
 
-  //TO-DO: Need to do checks on the mesh to reconcile the twp
-        // - Is it bijective? 
-  
+  // TO-DO: Need to do checks on the mesh to reconcile the twp
+  //  - Is it bijective?
 
   // == Register the default callback which maintains marked edges
   auto updateMarkedEdges = [&](Edge oldE, Halfedge newHe1, Halfedge newHe2) {
