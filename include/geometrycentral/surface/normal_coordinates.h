@@ -47,6 +47,12 @@ public:
   // Count of edges emanating from each corner (nonnegative)
   VertexData<int> roundaboutDegrees;
 
+
+  // JEFFREY LAYTON
+  // Construct a raw copy on another mesh, preserving computed quantities.
+  // The meshes must have identical connectivity.
+  NormalCoordinates rawCopyTo(ManifoldSurfaceMesh& targetMesh) const;
+
   // === Initialization
   void setCurvesFromEdges(ManifoldSurfaceMesh& mesh);
 
