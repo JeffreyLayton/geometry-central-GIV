@@ -5,10 +5,8 @@
 #include "geometrycentral/surface/surface_point.h"
 #include "geometrycentral/utilities/elementary_geometry.h"
 
-
 namespace geometrycentral {
 namespace surface {
-
 // Halfedges always point "left"
 struct NormalCoordinatesCurve {
   std::vector<std::pair<int, Halfedge>> crossings;
@@ -16,7 +14,6 @@ struct NormalCoordinatesCurve {
 struct NormalCoordinatesCompoundCurve {
   std::vector<NormalCoordinatesCurve> components;
 };
-
 
 // A set of normal coordinates atop a triangulation. Represents general
 // non-crossing curves which may terminate at vertices.
@@ -60,7 +57,6 @@ public:
 
   // Call after mesh->flip(e) to update normal coordinates
   void applyFlippedData(Edge e, const std::tuple<int, size_t, size_t>& update);
-
 
   // === Mutation
 
@@ -115,7 +111,6 @@ public:
   // (equally spaced)
   std::vector<std::vector<SurfacePoint>> generateAnyGeometry() const;
 
-
   // === Geodesic routines
   std::vector<std::vector<SurfacePoint>> generateGeodesicGeometry(IntrinsicGeometryInterface& geo) const;
 
@@ -165,6 +160,11 @@ public:
   // Set roundabout relative to roundabout for previous (in counterclockwise
   // order) halfedge
   void setRoundaboutFromPrevRoundabout(Halfedge he);
+
+protected:
+  // JEFFREY LAYTON
+  // Handling the copying procedure for rawCopyTo
+  NormalCoordinates(const NormalCoordinates& source, ManifoldSurfaceMesh& targetMesh);
 };
 
 // == Helper function
@@ -195,7 +195,6 @@ std::vector<std::vector<SurfacePoint>> generateGeodesicGeometry(ManifoldSurfaceM
                                                                 IntrinsicGeometryInterface& geo,
                                                                 const std::vector<NormalCoordinatesCurve>& traceCounts);
 
-
 std::vector<SurfacePoint> generateSingleGeodesicGeometry(ManifoldSurfaceMesh& mesh, IntrinsicGeometryInterface& geo,
                                                          const NormalCoordinatesCurve& curve);
 
@@ -211,6 +210,5 @@ std::vector<std::pair<SurfacePoint, double>> generateFullSingleGeodesicGeometry(
 // crossings along f's edges
 std::array<int, 3> computeVertexInsertionCrossingCounts(Vector3 bary,
                                                         const std::array<std::vector<double>, 3>& boundaryCrossings);
-
 } // namespace surface
 } // namespace geometrycentral

@@ -67,6 +67,11 @@ IntegerCoordinatesIntrinsicTriangulation::IntegerCoordinatesIntrinsicTriangulati
 
 }
 
+std::unique_ptr<IntegerCoordinatesIntrinsicTriangulation> IntegerCoordinatesIntrinsicTriangulation::rawCopy() const {
+  return std::unique_ptr<IntegerCoordinatesIntrinsicTriangulation>(
+      new IntegerCoordinatesIntrinsicTriangulation(*this, intrinsicMesh->copy()));
+}
+
 // ======================================================
 //                 Queries & Accesses
 // ======================================================
@@ -2081,6 +2086,15 @@ Face IntegerCoordinatesIntrinsicTriangulation::getParentFace(Face f) const {
   std::cout << "!!??" << std::endl;
   return Face();
 }
+
+// clang-format off
+IntegerCoordinatesIntrinsicTriangulation::IntegerCoordinatesIntrinsicTriangulation(const IntegerCoordinatesIntrinsicTriangulation& source, std::unique_ptr<ManifoldSurfaceMesh> intrinsicMesh_) :
+  IntrinsicTriangulation(source, std::move(intrinsicMesh_)),
+  normalCoordinates(source.normalCoordinates.rawCopyTo(*intrinsicMesh)) {
+
+  GC_SAFETY_ASSERT(&normalCoordinates.mesh == intrinsicMesh.get(), "IntegerCoordinatesIntrinsicTriangulation::normalCoordinates must reference intrinsicMesh");
+}
+// clang-format on
 
 // ======================================================
 //          Geometry and Helpers

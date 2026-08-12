@@ -31,6 +31,10 @@ public:
                                            const EdgeData<int>& edgeCoords, const HalfedgeData<int>& roundabouts,
                                            const VertexData<int>& roundaboutDegrees, double mollifyEPS = 0.);
 
+  // JEFFREY LAYTON
+  // Construct a raw copy, preserving computed quantities.
+  std::unique_ptr<IntegerCoordinatesIntrinsicTriangulation> rawCopy() const;
+
   // ======================================================
   //                   Core Members
   // ======================================================
@@ -141,6 +145,12 @@ public:
   // If f is entirely contained in some face of the input mesh, return that
   // face Otherwise return Face()
   Face getParentFace(Face f) const;
+
+protected:
+  // JEFFREY LAYTON
+  // Handling the copying procedure for rawCopyTo
+  IntegerCoordinatesIntrinsicTriangulation(const IntegerCoordinatesIntrinsicTriangulation& source,
+                                           std::unique_ptr<ManifoldSurfaceMesh> intrinsicMesh_);
 
 private:
   // Implementation details

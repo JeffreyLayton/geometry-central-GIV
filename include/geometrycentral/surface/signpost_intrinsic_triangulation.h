@@ -25,6 +25,10 @@ public:
                                  const VertexData<SurfacePoint>& vertexLocations,
                                  const HalfedgeData<double>& signpostAngle, const EdgeData<bool>& edgeIsOriginal);
 
+  // JEFFREY LAYTON
+  // Construct a raw copy, preserving computed quantities.
+  std::unique_ptr<SignpostIntrinsicTriangulation> rawCopy() const;
+
   // ======================================================
   // ======== Core Members
   // ======================================================
@@ -80,6 +84,12 @@ public:
   Halfedge splitEdge(Halfedge he, double tSplit) override;
 
 protected:
+
+  // JEFFREY LAYTON
+  // Handling the copying procedure for rawCopyTo
+  SignpostIntrinsicTriangulation(const SignpostIntrinsicTriangulation& source,
+                                 std::unique_ptr<ManifoldSurfaceMesh> intrinsicMesh_);
+
 private:
   // ======================================================
   // ======== Geometry Interface

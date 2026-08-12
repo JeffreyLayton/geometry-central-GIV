@@ -37,6 +37,17 @@ std::unique_ptr<VertexPositionGeometry> VertexPositionGeometry::reinterpretTo(Su
   return newGeom;
 }
 
+std::unique_ptr<VertexPositionGeometry> VertexPositionGeometry::rawCopyTo(SurfaceMesh& targetMesh) const {
+  return std::unique_ptr<VertexPositionGeometry>(new VertexPositionGeometry(*this, targetMesh));
+}
+
+// clang-format off
+VertexPositionGeometry::VertexPositionGeometry(const VertexPositionGeometry& source, SurfaceMesh& targetMesh) :
+  EmbeddedGeometryInterface(source, targetMesh),
+  inputVertexPositions(vertexPositions) {
+}
+// clang-format on
+
 void VertexPositionGeometry::computeVertexPositions() {
   // The input vertex positions share storage with vertexPositions, so this is a no-op
 }

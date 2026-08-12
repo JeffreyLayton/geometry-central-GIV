@@ -73,6 +73,10 @@ struct SurfacePoint {
   // === Operators
   bool operator==(const SurfacePoint& other) const;
   bool operator!=(const SurfacePoint& other) const;
+
+  // JEFFREY LAYTON
+  // Added so we can define a rawCopyTo for CommonSubdivision
+  inline SurfacePoint reinterpretTo(SurfaceMesh& targetMesh) const;
 };
 
 // Check if two surface points are adjacent on the mesh (aka occur in adjacent simplices)

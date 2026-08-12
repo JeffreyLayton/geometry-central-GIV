@@ -25,6 +25,11 @@ public:
   // The meshes must be in correspondence (have the same connectivity).
   std::unique_ptr<EdgeLengthGeometry> reinterpretTo(SurfaceMesh& targetMesh);
 
+  // JEFFREY LAYTON
+  // Construct a raw copy on another mesh, preserving computed quantities.
+  // The meshes must have identical connectivity.
+  std::unique_ptr<EdgeLengthGeometry> rawCopyTo(SurfaceMesh& targetMesh) const;
+
   // The actual input data which defines the geometry
   // In a previous version of the library, this was a distinct field which got copied in to `edgeLengths`. However, now
   // they are simply aliases for the same buffer.
@@ -41,6 +46,11 @@ public:
 
 
 protected:
+  
+  // JEFFREY LAYTON
+  // Handling the copying procedure for rawCopyTo
+  EdgeLengthGeometry(const EdgeLengthGeometry& source, SurfaceMesh& targetMesh);
+
   // Override the compute edge lengths method from intrinsic geometry.
   virtual void computeEdgeLengths() override;
 

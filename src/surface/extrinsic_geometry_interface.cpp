@@ -163,6 +163,54 @@ void ExtrinsicGeometryInterface::unrequireFacePrincipalCurvatureDirections() {
   facePrincipalCurvatureDirectionsQ.unrequire();
 }
 
+// clang-format off
+ExtrinsicGeometryInterface::ExtrinsicGeometryInterface(const ExtrinsicGeometryInterface& source, SurfaceMesh& targetMesh) :
+  IntrinsicGeometryInterface(source, targetMesh),
+  edgeDihedralAnglesQ                 (&edgeDihedralAngles,                  std::bind(&ExtrinsicGeometryInterface::computeEdgeDihedralAngles, this),                 quantities),
+  vertexMeanCurvaturesQ               (&vertexMeanCurvatures,                std::bind(&ExtrinsicGeometryInterface::computeVertexMeanCurvatures, this),               quantities),
+  vertexMinPrincipalCurvaturesQ       (&vertexMinPrincipalCurvatures,        std::bind(&ExtrinsicGeometryInterface::computeVertexMinPrincipalCurvatures, this),       quantities),
+  vertexMaxPrincipalCurvaturesQ       (&vertexMaxPrincipalCurvatures,        std::bind(&ExtrinsicGeometryInterface::computeVertexMaxPrincipalCurvatures, this),       quantities),
+  vertexPrincipalCurvatureDirectionsQ (&vertexPrincipalCurvatureDirections, std::bind(&ExtrinsicGeometryInterface::computeVertexPrincipalCurvatureDirections, this), quantities),
+  facePrincipalCurvatureDirectionsQ   (&facePrincipalCurvatureDirections,   std::bind(&ExtrinsicGeometryInterface::computeFacePrincipalCurvatureDirections, this),   quantities) {
+
+  if (source.edgeDihedralAnglesQ.computed)
+    edgeDihedralAngles = source.edgeDihedralAngles.reinterpretTo(targetMesh);
+  edgeDihedralAnglesQ.computed = source.edgeDihedralAnglesQ.computed;
+  edgeDihedralAnglesQ.requireCount = source.edgeDihedralAnglesQ.requireCount;
+  edgeDihedralAnglesQ.clearable = source.edgeDihedralAnglesQ.clearable;
+
+  if (source.vertexMeanCurvaturesQ.computed)
+    vertexMeanCurvatures = source.vertexMeanCurvatures.reinterpretTo(targetMesh);
+  vertexMeanCurvaturesQ.computed = source.vertexMeanCurvaturesQ.computed;
+  vertexMeanCurvaturesQ.requireCount = source.vertexMeanCurvaturesQ.requireCount;
+  vertexMeanCurvaturesQ.clearable = source.vertexMeanCurvaturesQ.clearable;
+
+  if (source.vertexMinPrincipalCurvaturesQ.computed)
+    vertexMinPrincipalCurvatures = source.vertexMinPrincipalCurvatures.reinterpretTo(targetMesh);
+  vertexMinPrincipalCurvaturesQ.computed = source.vertexMinPrincipalCurvaturesQ.computed;
+  vertexMinPrincipalCurvaturesQ.requireCount = source.vertexMinPrincipalCurvaturesQ.requireCount;
+  vertexMinPrincipalCurvaturesQ.clearable = source.vertexMinPrincipalCurvaturesQ.clearable;
+
+  if (source.vertexMaxPrincipalCurvaturesQ.computed)
+    vertexMaxPrincipalCurvatures = source.vertexMaxPrincipalCurvatures.reinterpretTo(targetMesh);
+  vertexMaxPrincipalCurvaturesQ.computed = source.vertexMaxPrincipalCurvaturesQ.computed;
+  vertexMaxPrincipalCurvaturesQ.requireCount = source.vertexMaxPrincipalCurvaturesQ.requireCount;
+  vertexMaxPrincipalCurvaturesQ.clearable = source.vertexMaxPrincipalCurvaturesQ.clearable;
+
+  if (source.vertexPrincipalCurvatureDirectionsQ.computed)
+    vertexPrincipalCurvatureDirections = source.vertexPrincipalCurvatureDirections.reinterpretTo(targetMesh);
+  vertexPrincipalCurvatureDirectionsQ.computed = source.vertexPrincipalCurvatureDirectionsQ.computed;
+  vertexPrincipalCurvatureDirectionsQ.requireCount = source.vertexPrincipalCurvatureDirectionsQ.requireCount;
+  vertexPrincipalCurvatureDirectionsQ.clearable = source.vertexPrincipalCurvatureDirectionsQ.clearable;
+
+  if (source.facePrincipalCurvatureDirectionsQ.computed)
+    facePrincipalCurvatureDirections = source.facePrincipalCurvatureDirections.reinterpretTo(targetMesh);
+  facePrincipalCurvatureDirectionsQ.computed = source.facePrincipalCurvatureDirectionsQ.computed;
+  facePrincipalCurvatureDirectionsQ.requireCount = source.facePrincipalCurvatureDirectionsQ.requireCount;
+  facePrincipalCurvatureDirectionsQ.clearable = source.facePrincipalCurvatureDirectionsQ.clearable;
+}
+// clang-format on
+
 
 } // namespace surface
 } // namespace geometrycentral

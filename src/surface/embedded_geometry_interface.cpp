@@ -848,5 +848,123 @@ Eigen::Vector3d EmbeddedGeometryInterface::gradientHatFunction(const Eigen::Vect
   return gradient;
 }
 
+// clang-format off
+EmbeddedGeometryInterface::EmbeddedGeometryInterface(const EmbeddedGeometryInterface& source, SurfaceMesh& targetMesh) :
+  ExtrinsicGeometryInterface(source, targetMesh),
+  vertexPositionsQ                        (&vertexPositions,                        std::bind(&EmbeddedGeometryInterface::computeVertexPositions, this),                        quantities),
+  faceCentroidsQ                          (&faceCentroids,                          std::bind(&EmbeddedGeometryInterface::computeFaceCentroids, this),                          quantities),
+  faceNormalsQ                            (&faceNormals,                            std::bind(&EmbeddedGeometryInterface::computeFaceNormals, this),                            quantities),
+  vertexNormalsQ                          (&vertexNormals,                          std::bind(&EmbeddedGeometryInterface::computeVertexNormals, this),                          quantities),
+  faceTangentBasisQ                       (&faceTangentBasis,                       std::bind(&EmbeddedGeometryInterface::computeFaceTangentBasis, this),                       quantities),
+  vertexTangentBasisQ                     (&vertexTangentBasis,                     std::bind(&EmbeddedGeometryInterface::computeVertexTangentBasis, this),                     quantities),
+  vertexDualMeanCurvatureNormalsQ         (&vertexDualMeanCurvatureNormals,         std::bind(&EmbeddedGeometryInterface::computeVertexDualMeanCurvatureNormals, this),         quantities),
+  simplePolygonLaplacianQ                 (&simplePolygonLaplacian,                 std::bind(&EmbeddedGeometryInterface::computeSimplePolygonLaplacian, this),                 quantities),
+  simplePolygonDivergenceMatrixQ          (&simplePolygonDivergenceMatrix,          std::bind(&EmbeddedGeometryInterface::computeSimplePolygonDivergenceMatrix, this),          quantities),
+  simplePolygonGradientMatrixQ            (&simplePolygonGradientMatrix,            std::bind(&EmbeddedGeometryInterface::computeSimplePolygonGradientMatrix, this),            quantities),
+  simplePolygonProlongationMatrixQ        (&simplePolygonProlongationMatrix,        std::bind(&EmbeddedGeometryInterface::computeSimplePolygonProlongationMatrix, this),        quantities),
+  simplePolygonVertexConnectionLaplacianQ (&simplePolygonVertexConnectionLaplacian, std::bind(&EmbeddedGeometryInterface::computeSimplePolygonVertexConnectionLaplacian, this), quantities),
+  simplePolygonVertexGalerkinMassMatrixQ  (&simplePolygonVertexGalerkinMassMatrix,  std::bind(&EmbeddedGeometryInterface::computeSimplePolygonVertexGalerkinMassMatrix, this),  quantities),
+  simplePolygonVertexLumpedMassMatrixQ    (&simplePolygonVertexLumpedMassMatrix,    std::bind(&EmbeddedGeometryInterface::computeSimplePolygonVertexLumpedMassMatrix, this),    quantities),
+  virtualRefinementAreaWeightsQ           (&virtualRefinementAreaWeights,           std::bind(&EmbeddedGeometryInterface::computeVirtualRefinementAreaWeights, this),           quantities),
+  virtualRefinementAreaPointsQ            (&virtualRefinementAreaPoints,            std::bind(&EmbeddedGeometryInterface::computeVirtualRefinementAreaWeights, this),           quantities) {
+
+  if (source.vertexPositionsQ.computed)
+    vertexPositions = source.vertexPositions.reinterpretTo(targetMesh);
+  vertexPositionsQ.computed = source.vertexPositionsQ.computed;
+  vertexPositionsQ.requireCount = source.vertexPositionsQ.requireCount;
+  vertexPositionsQ.clearable = source.vertexPositionsQ.clearable;
+
+  if (source.faceCentroidsQ.computed)
+    faceCentroids = source.faceCentroids.reinterpretTo(targetMesh);
+  faceCentroidsQ.computed = source.faceCentroidsQ.computed;
+  faceCentroidsQ.requireCount = source.faceCentroidsQ.requireCount;
+  faceCentroidsQ.clearable = source.faceCentroidsQ.clearable;
+
+  if (source.faceNormalsQ.computed)
+    faceNormals = source.faceNormals.reinterpretTo(targetMesh);
+  faceNormalsQ.computed = source.faceNormalsQ.computed;
+  faceNormalsQ.requireCount = source.faceNormalsQ.requireCount;
+  faceNormalsQ.clearable = source.faceNormalsQ.clearable;
+
+  if (source.vertexNormalsQ.computed)
+    vertexNormals = source.vertexNormals.reinterpretTo(targetMesh);
+  vertexNormalsQ.computed = source.vertexNormalsQ.computed;
+  vertexNormalsQ.requireCount = source.vertexNormalsQ.requireCount;
+  vertexNormalsQ.clearable = source.vertexNormalsQ.clearable;
+
+  if (source.faceTangentBasisQ.computed)
+    faceTangentBasis = source.faceTangentBasis.reinterpretTo(targetMesh);
+  faceTangentBasisQ.computed = source.faceTangentBasisQ.computed;
+  faceTangentBasisQ.requireCount = source.faceTangentBasisQ.requireCount;
+  faceTangentBasisQ.clearable = source.faceTangentBasisQ.clearable;
+
+  if (source.vertexTangentBasisQ.computed)
+    vertexTangentBasis = source.vertexTangentBasis.reinterpretTo(targetMesh);
+  vertexTangentBasisQ.computed = source.vertexTangentBasisQ.computed;
+  vertexTangentBasisQ.requireCount = source.vertexTangentBasisQ.requireCount;
+  vertexTangentBasisQ.clearable = source.vertexTangentBasisQ.clearable;
+
+  if (source.vertexDualMeanCurvatureNormalsQ.computed)
+    vertexDualMeanCurvatureNormals = source.vertexDualMeanCurvatureNormals.reinterpretTo(targetMesh);
+  vertexDualMeanCurvatureNormalsQ.computed = source.vertexDualMeanCurvatureNormalsQ.computed;
+  vertexDualMeanCurvatureNormalsQ.requireCount = source.vertexDualMeanCurvatureNormalsQ.requireCount;
+  vertexDualMeanCurvatureNormalsQ.clearable = source.vertexDualMeanCurvatureNormalsQ.clearable;
+
+  if (source.simplePolygonLaplacianQ.computed)
+    simplePolygonLaplacian = source.simplePolygonLaplacian;
+  simplePolygonLaplacianQ.computed = source.simplePolygonLaplacianQ.computed;
+  simplePolygonLaplacianQ.requireCount = source.simplePolygonLaplacianQ.requireCount;
+  simplePolygonLaplacianQ.clearable = source.simplePolygonLaplacianQ.clearable;
+
+  if (source.simplePolygonDivergenceMatrixQ.computed)
+    simplePolygonDivergenceMatrix = source.simplePolygonDivergenceMatrix;
+  simplePolygonDivergenceMatrixQ.computed = source.simplePolygonDivergenceMatrixQ.computed;
+  simplePolygonDivergenceMatrixQ.requireCount = source.simplePolygonDivergenceMatrixQ.requireCount;
+  simplePolygonDivergenceMatrixQ.clearable = source.simplePolygonDivergenceMatrixQ.clearable;
+
+  if (source.simplePolygonGradientMatrixQ.computed)
+    simplePolygonGradientMatrix = source.simplePolygonGradientMatrix;
+  simplePolygonGradientMatrixQ.computed = source.simplePolygonGradientMatrixQ.computed;
+  simplePolygonGradientMatrixQ.requireCount = source.simplePolygonGradientMatrixQ.requireCount;
+  simplePolygonGradientMatrixQ.clearable = source.simplePolygonGradientMatrixQ.clearable;
+
+  if (source.simplePolygonProlongationMatrixQ.computed)
+    simplePolygonProlongationMatrix = source.simplePolygonProlongationMatrix;
+  simplePolygonProlongationMatrixQ.computed = source.simplePolygonProlongationMatrixQ.computed;
+  simplePolygonProlongationMatrixQ.requireCount = source.simplePolygonProlongationMatrixQ.requireCount;
+  simplePolygonProlongationMatrixQ.clearable = source.simplePolygonProlongationMatrixQ.clearable;
+
+  if (source.simplePolygonVertexConnectionLaplacianQ.computed)
+    simplePolygonVertexConnectionLaplacian = source.simplePolygonVertexConnectionLaplacian;
+  simplePolygonVertexConnectionLaplacianQ.computed = source.simplePolygonVertexConnectionLaplacianQ.computed;
+  simplePolygonVertexConnectionLaplacianQ.requireCount = source.simplePolygonVertexConnectionLaplacianQ.requireCount;
+  simplePolygonVertexConnectionLaplacianQ.clearable = source.simplePolygonVertexConnectionLaplacianQ.clearable;
+
+  if (source.simplePolygonVertexGalerkinMassMatrixQ.computed)
+    simplePolygonVertexGalerkinMassMatrix = source.simplePolygonVertexGalerkinMassMatrix;
+  simplePolygonVertexGalerkinMassMatrixQ.computed = source.simplePolygonVertexGalerkinMassMatrixQ.computed;
+  simplePolygonVertexGalerkinMassMatrixQ.requireCount = source.simplePolygonVertexGalerkinMassMatrixQ.requireCount;
+  simplePolygonVertexGalerkinMassMatrixQ.clearable = source.simplePolygonVertexGalerkinMassMatrixQ.clearable;
+
+  if (source.simplePolygonVertexLumpedMassMatrixQ.computed)
+    simplePolygonVertexLumpedMassMatrix = source.simplePolygonVertexLumpedMassMatrix;
+  simplePolygonVertexLumpedMassMatrixQ.computed = source.simplePolygonVertexLumpedMassMatrixQ.computed;
+  simplePolygonVertexLumpedMassMatrixQ.requireCount = source.simplePolygonVertexLumpedMassMatrixQ.requireCount;
+  simplePolygonVertexLumpedMassMatrixQ.clearable = source.simplePolygonVertexLumpedMassMatrixQ.clearable;
+
+  if (source.virtualRefinementAreaWeightsQ.computed)
+    virtualRefinementAreaWeights = source.virtualRefinementAreaWeights.reinterpretTo(targetMesh);
+  virtualRefinementAreaWeightsQ.computed = source.virtualRefinementAreaWeightsQ.computed;
+  virtualRefinementAreaWeightsQ.requireCount = source.virtualRefinementAreaWeightsQ.requireCount;
+  virtualRefinementAreaWeightsQ.clearable = source.virtualRefinementAreaWeightsQ.clearable;
+
+  if (source.virtualRefinementAreaPointsQ.computed)
+    virtualRefinementAreaPoints = source.virtualRefinementAreaPoints.reinterpretTo(targetMesh);
+  virtualRefinementAreaPointsQ.computed = source.virtualRefinementAreaPointsQ.computed;
+  virtualRefinementAreaPointsQ.requireCount = source.virtualRefinementAreaPointsQ.requireCount;
+  virtualRefinementAreaPointsQ.clearable = source.virtualRefinementAreaPointsQ.clearable;
+}
+// clang-format on
+
 } // namespace surface
 } // namespace geometrycentral

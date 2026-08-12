@@ -34,6 +34,11 @@ public:
   // The meshes must be in correspondence (have the same connectivity).
   std::unique_ptr<VertexPositionGeometry> reinterpretTo(SurfaceMesh& targetMesh);
 
+  // JEFFREY LAYTON
+  // Construct a raw copy on another mesh, preserving computed quantities.
+  // The meshes must have identical connectivity.
+  std::unique_ptr<VertexPositionGeometry> rawCopyTo(SurfaceMesh& targetMesh) const;
+
 
   // == Members
 
@@ -59,6 +64,11 @@ public:
   Vector3 vertexDualMeanCurvatureNormal(Vertex v) const;
 
 protected:
+
+  // JEFFREY LAYTON
+  // Handling the copying procedure for rawCopyTo
+  VertexPositionGeometry(const VertexPositionGeometry& source, SurfaceMesh& targetMesh);
+
   // Override the compute vertex positions method for embedded geometry
   virtual void computeVertexPositions() override;
 

@@ -773,5 +773,202 @@ void IntrinsicGeometryInterface::computeDECOperators() {
 void IntrinsicGeometryInterface::requireDECOperators() { DECOperatorsQ.require(); }
 void IntrinsicGeometryInterface::unrequireDECOperators() { DECOperatorsQ.unrequire(); }
 
+// clang-format off
+IntrinsicGeometryInterface::IntrinsicGeometryInterface(const IntrinsicGeometryInterface& source, SurfaceMesh& targetMesh) :
+  BaseGeometryInterface(source, targetMesh),
+  edgeLengthsQ              (&edgeLengths,                  std::bind(&IntrinsicGeometryInterface::computeEdgeLengths, this),               quantities),
+  faceAreasQ                (&faceAreas,                    std::bind(&IntrinsicGeometryInterface::computeFaceAreas, this),                 quantities),
+  vertexDualAreasQ          (&vertexDualAreas,              std::bind(&IntrinsicGeometryInterface::computeVertexDualAreas, this),           quantities),
+  cornerAnglesQ             (&cornerAngles,                 std::bind(&IntrinsicGeometryInterface::computeCornerAngles, this),              quantities),
+  vertexAngleSumsQ          (&vertexAngleSums,              std::bind(&IntrinsicGeometryInterface::computeVertexAngleSums, this),           quantities),
+  cornerScaledAnglesQ       (&cornerScaledAngles,           std::bind(&IntrinsicGeometryInterface::computeCornerScaledAngles, this),        quantities),
+  vertexGaussianCurvaturesQ (&vertexGaussianCurvatures,     std::bind(&IntrinsicGeometryInterface::computeVertexGaussianCurvatures, this),  quantities),
+  faceGaussianCurvaturesQ   (&faceGaussianCurvatures,       std::bind(&IntrinsicGeometryInterface::computeFaceGaussianCurvatures, this),    quantities),
+  halfedgeCotanWeightsQ     (&halfedgeCotanWeights,         std::bind(&IntrinsicGeometryInterface::computeHalfedgeCotanWeights, this),      quantities),
+  edgeCotanWeightsQ         (&edgeCotanWeights,             std::bind(&IntrinsicGeometryInterface::computeEdgeCotanWeights, this),          quantities),
+  shapeLengthScaleQ         (&shapeLengthScale,             std::bind(&IntrinsicGeometryInterface::computeShapeLengthScale, this),          quantities),
+  meshLengthScaleQ          (&meshLengthScale,              std::bind(&IntrinsicGeometryInterface::computeMeshLengthScale, this),           quantities),
+  halfedgeVectorsInFaceQ          (&halfedgeVectorsInFace,          std::bind(&IntrinsicGeometryInterface::computeHalfedgeVectorsInFace, this),          quantities),
+  transportVectorsAcrossHalfedgeQ (&transportVectorsAcrossHalfedge, std::bind(&IntrinsicGeometryInterface::computeTransportVectorsAcrossHalfedge, this), quantities),
+  halfedgeVectorsInVertexQ        (&halfedgeVectorsInVertex,        std::bind(&IntrinsicGeometryInterface::computeHalfedgeVectorsInVertex, this),        quantities),
+  transportVectorsAlongHalfedgeQ  (&transportVectorsAlongHalfedge,  std::bind(&IntrinsicGeometryInterface::computeTransportVectorsAlongHalfedge, this),  quantities),
+  cotanLaplacianQ                     (&cotanLaplacian,                     std::bind(&IntrinsicGeometryInterface::computeCotanLaplacian, this),                     quantities),
+  vertexLumpedMassMatrixQ             (&vertexLumpedMassMatrix,             std::bind(&IntrinsicGeometryInterface::computeVertexLumpedMassMatrix, this),             quantities),
+  vertexGalerkinMassMatrixQ           (&vertexGalerkinMassMatrix,           std::bind(&IntrinsicGeometryInterface::computeVertexGalerkinMassMatrix, this),           quantities),
+  vertexConnectionLaplacianQ          (&vertexConnectionLaplacian,          std::bind(&IntrinsicGeometryInterface::computeVertexConnectionLaplacian, this),          quantities),
+  faceGalerkinMassMatrixQ             (&faceGalerkinMassMatrix,             std::bind(&IntrinsicGeometryInterface::computeFaceGalerkinMassMatrix, this),             quantities),
+  faceConnectionLaplacianQ            (&faceConnectionLaplacian,            std::bind(&IntrinsicGeometryInterface::computeFaceConnectionLaplacian, this),            quantities),
+  crouzeixRaviartLaplacianQ           (&crouzeixRaviartLaplacian,           std::bind(&IntrinsicGeometryInterface::computeCrouzeixRaviartLaplacian, this),           quantities),
+  crouzeixRaviartMassMatrixQ          (&crouzeixRaviartMassMatrix,          std::bind(&IntrinsicGeometryInterface::computeCrouzeixRaviartMassMatrix, this),          quantities),
+  crouzeixRaviartConnectionLaplacianQ (&crouzeixRaviartConnectionLaplacian, std::bind(&IntrinsicGeometryInterface::computeCrouzeixRaviartConnectionLaplacian, this), quantities),
+  DECOperatorArray{&hodge0, &hodge0Inverse, &hodge1, &hodge1Inverse, &hodge2, &hodge2Inverse, &d0, &d1},
+  DECOperatorsQ(&DECOperatorArray, std::bind(&IntrinsicGeometryInterface::computeDECOperators, this), quantities) {
+
+  if (source.edgeLengthsQ.computed)
+    edgeLengths = source.edgeLengths.reinterpretTo(targetMesh);
+  edgeLengthsQ.computed = source.edgeLengthsQ.computed;
+  edgeLengthsQ.requireCount = source.edgeLengthsQ.requireCount;
+  edgeLengthsQ.clearable = source.edgeLengthsQ.clearable;
+
+  if (source.faceAreasQ.computed)
+    faceAreas = source.faceAreas.reinterpretTo(targetMesh);
+  faceAreasQ.computed = source.faceAreasQ.computed;
+  faceAreasQ.requireCount = source.faceAreasQ.requireCount;
+  faceAreasQ.clearable = source.faceAreasQ.clearable;
+
+  if (source.vertexDualAreasQ.computed)
+    vertexDualAreas = source.vertexDualAreas.reinterpretTo(targetMesh);
+  vertexDualAreasQ.computed = source.vertexDualAreasQ.computed;
+  vertexDualAreasQ.requireCount = source.vertexDualAreasQ.requireCount;
+  vertexDualAreasQ.clearable = source.vertexDualAreasQ.clearable;
+
+  if (source.cornerAnglesQ.computed)
+    cornerAngles = source.cornerAngles.reinterpretTo(targetMesh);
+  cornerAnglesQ.computed = source.cornerAnglesQ.computed;
+  cornerAnglesQ.requireCount = source.cornerAnglesQ.requireCount;
+  cornerAnglesQ.clearable = source.cornerAnglesQ.clearable;
+
+  if (source.vertexAngleSumsQ.computed)
+    vertexAngleSums = source.vertexAngleSums.reinterpretTo(targetMesh);
+  vertexAngleSumsQ.computed = source.vertexAngleSumsQ.computed;
+  vertexAngleSumsQ.requireCount = source.vertexAngleSumsQ.requireCount;
+  vertexAngleSumsQ.clearable = source.vertexAngleSumsQ.clearable;
+
+  if (source.cornerScaledAnglesQ.computed)
+    cornerScaledAngles = source.cornerScaledAngles.reinterpretTo(targetMesh);
+  cornerScaledAnglesQ.computed = source.cornerScaledAnglesQ.computed;
+  cornerScaledAnglesQ.requireCount = source.cornerScaledAnglesQ.requireCount;
+  cornerScaledAnglesQ.clearable = source.cornerScaledAnglesQ.clearable;
+
+  if (source.vertexGaussianCurvaturesQ.computed)
+    vertexGaussianCurvatures = source.vertexGaussianCurvatures.reinterpretTo(targetMesh);
+  vertexGaussianCurvaturesQ.computed = source.vertexGaussianCurvaturesQ.computed;
+  vertexGaussianCurvaturesQ.requireCount = source.vertexGaussianCurvaturesQ.requireCount;
+  vertexGaussianCurvaturesQ.clearable = source.vertexGaussianCurvaturesQ.clearable;
+
+  if (source.faceGaussianCurvaturesQ.computed)
+    faceGaussianCurvatures = source.faceGaussianCurvatures.reinterpretTo(targetMesh);
+  faceGaussianCurvaturesQ.computed = source.faceGaussianCurvaturesQ.computed;
+  faceGaussianCurvaturesQ.requireCount = source.faceGaussianCurvaturesQ.requireCount;
+  faceGaussianCurvaturesQ.clearable = source.faceGaussianCurvaturesQ.clearable;
+
+  if (source.halfedgeCotanWeightsQ.computed)
+    halfedgeCotanWeights = source.halfedgeCotanWeights.reinterpretTo(targetMesh);
+  halfedgeCotanWeightsQ.computed = source.halfedgeCotanWeightsQ.computed;
+  halfedgeCotanWeightsQ.requireCount = source.halfedgeCotanWeightsQ.requireCount;
+  halfedgeCotanWeightsQ.clearable = source.halfedgeCotanWeightsQ.clearable;
+
+  if (source.edgeCotanWeightsQ.computed)
+    edgeCotanWeights = source.edgeCotanWeights.reinterpretTo(targetMesh);
+  edgeCotanWeightsQ.computed = source.edgeCotanWeightsQ.computed;
+  edgeCotanWeightsQ.requireCount = source.edgeCotanWeightsQ.requireCount;
+  edgeCotanWeightsQ.clearable = source.edgeCotanWeightsQ.clearable;
+
+  if (source.shapeLengthScaleQ.computed)
+    shapeLengthScale = source.shapeLengthScale;
+  shapeLengthScaleQ.computed = source.shapeLengthScaleQ.computed;
+  shapeLengthScaleQ.requireCount = source.shapeLengthScaleQ.requireCount;
+  shapeLengthScaleQ.clearable = source.shapeLengthScaleQ.clearable;
+
+  if (source.meshLengthScaleQ.computed)
+    meshLengthScale = source.meshLengthScale;
+  meshLengthScaleQ.computed = source.meshLengthScaleQ.computed;
+  meshLengthScaleQ.requireCount = source.meshLengthScaleQ.requireCount;
+  meshLengthScaleQ.clearable = source.meshLengthScaleQ.clearable;
+
+  if (source.halfedgeVectorsInFaceQ.computed)
+    halfedgeVectorsInFace = source.halfedgeVectorsInFace.reinterpretTo(targetMesh);
+  halfedgeVectorsInFaceQ.computed = source.halfedgeVectorsInFaceQ.computed;
+  halfedgeVectorsInFaceQ.requireCount = source.halfedgeVectorsInFaceQ.requireCount;
+  halfedgeVectorsInFaceQ.clearable = source.halfedgeVectorsInFaceQ.clearable;
+
+  if (source.transportVectorsAcrossHalfedgeQ.computed)
+    transportVectorsAcrossHalfedge = source.transportVectorsAcrossHalfedge.reinterpretTo(targetMesh);
+  transportVectorsAcrossHalfedgeQ.computed = source.transportVectorsAcrossHalfedgeQ.computed;
+  transportVectorsAcrossHalfedgeQ.requireCount = source.transportVectorsAcrossHalfedgeQ.requireCount;
+  transportVectorsAcrossHalfedgeQ.clearable = source.transportVectorsAcrossHalfedgeQ.clearable;
+
+  if (source.halfedgeVectorsInVertexQ.computed)
+    halfedgeVectorsInVertex = source.halfedgeVectorsInVertex.reinterpretTo(targetMesh);
+  halfedgeVectorsInVertexQ.computed = source.halfedgeVectorsInVertexQ.computed;
+  halfedgeVectorsInVertexQ.requireCount = source.halfedgeVectorsInVertexQ.requireCount;
+  halfedgeVectorsInVertexQ.clearable = source.halfedgeVectorsInVertexQ.clearable;
+
+  if (source.transportVectorsAlongHalfedgeQ.computed)
+    transportVectorsAlongHalfedge = source.transportVectorsAlongHalfedge.reinterpretTo(targetMesh);
+  transportVectorsAlongHalfedgeQ.computed = source.transportVectorsAlongHalfedgeQ.computed;
+  transportVectorsAlongHalfedgeQ.requireCount = source.transportVectorsAlongHalfedgeQ.requireCount;
+  transportVectorsAlongHalfedgeQ.clearable = source.transportVectorsAlongHalfedgeQ.clearable;
+
+  if (source.cotanLaplacianQ.computed)
+    cotanLaplacian = source.cotanLaplacian;
+  cotanLaplacianQ.computed = source.cotanLaplacianQ.computed;
+  cotanLaplacianQ.requireCount = source.cotanLaplacianQ.requireCount;
+  cotanLaplacianQ.clearable = source.cotanLaplacianQ.clearable;
+
+  if (source.vertexLumpedMassMatrixQ.computed)
+    vertexLumpedMassMatrix = source.vertexLumpedMassMatrix;
+  vertexLumpedMassMatrixQ.computed = source.vertexLumpedMassMatrixQ.computed;
+  vertexLumpedMassMatrixQ.requireCount = source.vertexLumpedMassMatrixQ.requireCount;
+  vertexLumpedMassMatrixQ.clearable = source.vertexLumpedMassMatrixQ.clearable;
+
+  if (source.vertexGalerkinMassMatrixQ.computed)
+    vertexGalerkinMassMatrix = source.vertexGalerkinMassMatrix;
+  vertexGalerkinMassMatrixQ.computed = source.vertexGalerkinMassMatrixQ.computed;
+  vertexGalerkinMassMatrixQ.requireCount = source.vertexGalerkinMassMatrixQ.requireCount;
+  vertexGalerkinMassMatrixQ.clearable = source.vertexGalerkinMassMatrixQ.clearable;
+
+  if (source.vertexConnectionLaplacianQ.computed)
+    vertexConnectionLaplacian = source.vertexConnectionLaplacian;
+  vertexConnectionLaplacianQ.computed = source.vertexConnectionLaplacianQ.computed;
+  vertexConnectionLaplacianQ.requireCount = source.vertexConnectionLaplacianQ.requireCount;
+  vertexConnectionLaplacianQ.clearable = source.vertexConnectionLaplacianQ.clearable;
+
+  if (source.faceGalerkinMassMatrixQ.computed)
+    faceGalerkinMassMatrix = source.faceGalerkinMassMatrix;
+  faceGalerkinMassMatrixQ.computed = source.faceGalerkinMassMatrixQ.computed;
+  faceGalerkinMassMatrixQ.requireCount = source.faceGalerkinMassMatrixQ.requireCount;
+  faceGalerkinMassMatrixQ.clearable = source.faceGalerkinMassMatrixQ.clearable;
+
+  if (source.faceConnectionLaplacianQ.computed)
+    faceConnectionLaplacian = source.faceConnectionLaplacian;
+  faceConnectionLaplacianQ.computed = source.faceConnectionLaplacianQ.computed;
+  faceConnectionLaplacianQ.requireCount = source.faceConnectionLaplacianQ.requireCount;
+  faceConnectionLaplacianQ.clearable = source.faceConnectionLaplacianQ.clearable;
+
+  if (source.crouzeixRaviartLaplacianQ.computed)
+    crouzeixRaviartLaplacian = source.crouzeixRaviartLaplacian;
+  crouzeixRaviartLaplacianQ.computed = source.crouzeixRaviartLaplacianQ.computed;
+  crouzeixRaviartLaplacianQ.requireCount = source.crouzeixRaviartLaplacianQ.requireCount;
+  crouzeixRaviartLaplacianQ.clearable = source.crouzeixRaviartLaplacianQ.clearable;
+
+  if (source.crouzeixRaviartMassMatrixQ.computed)
+    crouzeixRaviartMassMatrix = source.crouzeixRaviartMassMatrix;
+  crouzeixRaviartMassMatrixQ.computed = source.crouzeixRaviartMassMatrixQ.computed;
+  crouzeixRaviartMassMatrixQ.requireCount = source.crouzeixRaviartMassMatrixQ.requireCount;
+  crouzeixRaviartMassMatrixQ.clearable = source.crouzeixRaviartMassMatrixQ.clearable;
+
+  if (source.crouzeixRaviartConnectionLaplacianQ.computed)
+    crouzeixRaviartConnectionLaplacian = source.crouzeixRaviartConnectionLaplacian;
+  crouzeixRaviartConnectionLaplacianQ.computed = source.crouzeixRaviartConnectionLaplacianQ.computed;
+  crouzeixRaviartConnectionLaplacianQ.requireCount = source.crouzeixRaviartConnectionLaplacianQ.requireCount;
+  crouzeixRaviartConnectionLaplacianQ.clearable = source.crouzeixRaviartConnectionLaplacianQ.clearable;
+
+  if (source.DECOperatorsQ.computed) {
+    hodge0 = source.hodge0;
+    hodge0Inverse = source.hodge0Inverse;
+    hodge1 = source.hodge1;
+    hodge1Inverse = source.hodge1Inverse;
+    hodge2 = source.hodge2;
+    hodge2Inverse = source.hodge2Inverse;
+    d0 = source.d0;
+    d1 = source.d1;
+  }
+  DECOperatorsQ.computed = source.DECOperatorsQ.computed;
+  DECOperatorsQ.requireCount = source.DECOperatorsQ.requireCount;
+  DECOperatorsQ.clearable = source.DECOperatorsQ.clearable;
+}
+// clang-format on
+
 } // namespace surface
 } // namespace geometrycentral

@@ -71,6 +71,11 @@ SignpostIntrinsicTriangulation::SignpostIntrinsicTriangulation(
   edgeIsOriginal = edgeIsOriginal_.reinterpretTo(*intrinsicMesh);
 }
 
+std::unique_ptr<SignpostIntrinsicTriangulation> SignpostIntrinsicTriangulation::rawCopy() const {
+  return std::unique_ptr<SignpostIntrinsicTriangulation>(
+      new SignpostIntrinsicTriangulation(*this, intrinsicMesh->copy()));
+}
+
 std::vector<SurfacePoint> SignpostIntrinsicTriangulation::traceIntrinsicHalfedgeAlongInput(Halfedge he) {
   return traceIntrinsicHalfedgeAlongInput(he, true);
 }
@@ -580,6 +585,14 @@ Face SignpostIntrinsicTriangulation::removeInsertedVertex(Vertex v) {
 Halfedge SignpostIntrinsicTriangulation::splitEdge(Halfedge he, double tSplit) {
   return insertVertex_edge(SurfacePoint(he, tSplit));
 }
+
+// clang-format off
+SignpostIntrinsicTriangulation::SignpostIntrinsicTriangulation(const SignpostIntrinsicTriangulation& source, std::unique_ptr<ManifoldSurfaceMesh> intrinsicMesh_) :
+  IntrinsicTriangulation(source, std::move(intrinsicMesh_)),
+  signpostAngle(source.signpostAngle.reinterpretTo(mesh)),
+  edgeIsOriginal(source.edgeIsOriginal.reinterpretTo(mesh)) {
+}
+// clang-format on
 
 // ======================================================
 // ======== Geometry and Helpers

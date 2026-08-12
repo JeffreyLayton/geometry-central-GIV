@@ -2,7 +2,6 @@
 
 namespace geometrycentral {
 namespace surface {
-
 // helpers
 namespace {
 template <typename E, typename T>
@@ -51,7 +50,6 @@ std::ostream& operator<<(std::ostream& out, const CommonSubdivisionPoint& pt) {
 
 CommonSubdivision::CommonSubdivision(ManifoldSurfaceMesh& meshA_, ManifoldSurfaceMesh& meshB_)
     : meshA(meshA_), meshB(meshB_) {
-
   pointsAlongA = EdgeData<std::vector<CommonSubdivisionPoint*>>(meshA);
   pointsAlongB = EdgeData<std::vector<CommonSubdivisionPoint*>>(meshB);
 }
@@ -108,7 +106,6 @@ SparseMatrix<double> CommonSubdivision::interpolationMatrixA() {
   VertexData<size_t> AVertInd = meshA.getVertexIndices();
 
   for (Vertex v : mesh->vertices()) {
-
     CommonSubdivisionPoint& p = *sourcePoints[v];
     size_t iP = csVertInd[v];
 
@@ -150,7 +147,6 @@ SparseMatrix<double> CommonSubdivision::interpolationMatrixB() {
   VertexData<size_t> BVertInd = meshB.getVertexIndices();
 
   for (Vertex v : mesh->vertices()) {
-
     CommonSubdivisionPoint& p = *sourcePoints[v];
     size_t iP = csVertInd[v];
 
@@ -293,7 +289,6 @@ std::tuple<size_t, size_t, size_t> CommonSubdivision::elementCounts() const {
     nF += ci + cj + ck + ei + ej + ek + 1;
   }
 
-
   return std::tuple<size_t, size_t, size_t>{nV, nE, nF};
 }
 
@@ -320,7 +315,6 @@ std::vector<SurfacePoint> CommonSubdivision::getHalfedgePathAonB(Halfedge heA) {
     result.push_back(cs->posB);
   }
 
-
   if (heA != heA.edge().halfedge()) {
     std::reverse(result.begin(), result.end());
   }
@@ -335,7 +329,6 @@ std::vector<SurfacePoint> CommonSubdivision::getHalfedgePathBonA(Halfedge heB) {
     result.push_back(cs->posA);
   }
 
-
   if (heB != heB.edge().halfedge()) {
     std::reverse(result.begin(), result.end());
   }
@@ -343,9 +336,7 @@ std::vector<SurfacePoint> CommonSubdivision::getHalfedgePathBonA(Halfedge heB) {
   return result;
 }
 
-
 void CommonSubdivision::constructMesh(bool triangulate, bool skipIfAlreadyConstructed) {
-
   if (mesh && skipIfAlreadyConstructed) {
     return;
   }
@@ -383,11 +374,14 @@ std::unique_ptr<SimplePolygonMesh> CommonSubdivision::buildSimpleMesh() {
   return std::unique_ptr<SimplePolygonMesh>(new SimplePolygonMesh(faces, dummyPositions));
 }
 
+std::unique_ptr<CommonSubdivision> CommonSubdivision::rawCopyTo(ManifoldSurfaceMesh& targetMeshA,
+                                                                ManifoldSurfaceMesh& targetMeshB) const {
+  return std::unique_ptr<CommonSubdivision>(new CommonSubdivision(*this, targetMeshA, targetMeshB));
+}
 
 void CommonSubdivision::constructMeshData(std::vector<std::vector<size_t>>& faces_out,
                                           std::vector<CommonSubdivisionPoint*>& parents_out,
                                           std::vector<Face>& sourceFaceA_out, std::vector<Face>& sourceFaceB_out) {
-
   // Compute element counts to reserve space
   // size_t nV, nE, nF;
   // std::tie(nV, nE, nF) = elementCounts();
@@ -430,7 +424,6 @@ void CommonSubdivision::constructMeshData(std::vector<std::vector<size_t>>& face
     // Dst
     crossingVtxIds[eB].push_back(subdivisionPointsId[pointsAlongB[eB][pointsAlongB[eB].size() - 1]]);
   }
-
 
   // faces.reserve(nF);
   // Loop over faces of mesh B and cut along edges of mesh A which cross
@@ -491,7 +484,6 @@ void CommonSubdivision::constructMeshData(std::vector<std::vector<size_t>>& face
         }
       }
 
-
       // Search over the neighboring faces to the point, looking for a shared face
       Face sharedFace;
 
@@ -534,7 +526,6 @@ void CommonSubdivision::constructMeshData(std::vector<std::vector<size_t>>& face
   }
 }
 
-
 void CommonSubdivision::triangulateMesh() {
   checkMeshConstructed();
   for (Face oldFace : mesh->faces()) {
@@ -550,9 +541,84 @@ void CommonSubdivision::triangulateMesh() {
   mesh->compress();
 }
 
+CommonSubdivision::CommonSubdivision(const CommonSubdivision& source, ManifoldSurfaceMesh& meshA_,
+                                     ManifoldSurfaceMesh& meshB_)
+    : CommonSubdivision(meshA_, meshB_) {
+  GC_SAFETY_ASSERT(source.meshA.isCompressed() && meshA.isCompressed() && source.meshB.isCompressed() &&
+                       meshB.isCompressed(),
+                   "CommonSubdivision raw copy requires compressed meshes");
+
+  GC_SAFETY_ASSERT(source.meshA.nVertices() == meshA.nVertices() && source.meshA.nEdges() == meshA.nEdges() &&
+                       source.meshA.nHalfedges() == meshA.nHalfedges() && source.meshA.nFaces() == meshA.nFaces(),
+                   "CommonSubdivision raw copy: mesh A element counts differ");
+
+  GC_SAFETY_ASSERT(source.meshB.nVertices() == meshB.nVertices() && source.meshB.nEdges() == meshB.nEdges() &&
+                       source.meshB.nHalfedges() == meshB.nHalfedges() && source.meshB.nFaces() == meshB.nFaces(),
+                   "CommonSubdivision raw copy: mesh B element counts differ");
+
+  // Map pointers into the source deque to the corresponding elements in the
+  // copied deque.
+  std::unordered_map<const CommonSubdivisionPoint*, CommonSubdivisionPoint*> pointMap;
+
+  pointMap.reserve(source.subdivisionPoints.size());
+
+  for (const CommonSubdivisionPoint& sourcePoint : source.subdivisionPoints) {
+    subdivisionPoints.push_back(CommonSubdivisionPoint{sourcePoint.intersectionType,
+                                                       sourcePoint.posA.reinterpretTo(meshA),
+                                                       sourcePoint.posB.reinterpretTo(meshB), sourcePoint.orientation});
+
+    pointMap.emplace(&sourcePoint, &subdivisionPoints.back());
+  }
+
+  // Copy the edge paths and redirect their pointers into the copied deque.
+  pointsAlongA = source.pointsAlongA.reinterpretTo(meshA);
+  for (Edge e : meshA.edges()) {
+    for (CommonSubdivisionPoint*& point : pointsAlongA[e]) {
+      if (point != nullptr) {
+        point = pointMap.at(point);
+      }
+    }
+  }
+
+  pointsAlongB = source.pointsAlongB.reinterpretTo(meshB);
+  for (Edge e : meshB.edges()) {
+    for (CommonSubdivisionPoint*& point : pointsAlongB[e]) {
+      if (point != nullptr) {
+        point = pointMap.at(point);
+      }
+    }
+  }
+
+  // Preserve the explicitly constructed subdivision mesh, if present.
+  if (source.mesh) {
+    mesh = source.mesh->copy();
+
+    sourcePoints = source.sourcePoints.reinterpretTo(*mesh);
+    for (Vertex v : mesh->vertices()) {
+      CommonSubdivisionPoint*& point = sourcePoints[v];
+      if (point != nullptr) {
+        point = pointMap.at(point);
+      }
+    }
+
+    sourceFaceA = source.sourceFaceA.reinterpretTo(*mesh);
+    sourceFaceB = source.sourceFaceB.reinterpretTo(*mesh);
+    for (Face f : mesh->faces()) {
+      Face faceA = sourceFaceA[f];
+      if (faceA != Face()) {
+        sourceFaceA[f] = meshA.face(faceA.getIndex());
+      }
+
+      Face faceB = sourceFaceB[f];
+      if (faceB != Face()) {
+        sourceFaceB[f] = meshB.face(faceB.getIndex());
+      }
+    }
+  }
+}
+
 std::vector<std::vector<size_t>> sliceFace(const std::vector<size_t>& pij, const std::vector<size_t>& pjk,
                                            const std::vector<size_t>& pki) {
-
   if (pij.size() >= pjk.size() && pij.size() >= pki.size()) {
     return sliceNicelyOrderedFace(pij, pjk, pki);
   } else if (pjk.size() >= pki.size() && pjk.size() >= pij.size()) {
@@ -561,7 +627,6 @@ std::vector<std::vector<size_t>> sliceFace(const std::vector<size_t>& pij, const
     return sliceNicelyOrderedFace(pki, pij, pjk);
   }
 }
-
 
 // Precondition: pij.size() >= pjk.size(), pki.size()
 std::vector<std::vector<size_t>> sliceNicelyOrderedFace(const std::vector<size_t>& pij, const std::vector<size_t>& pjk,
@@ -616,7 +681,6 @@ std::vector<std::vector<size_t>> sliceNicelyOrderedFace(const std::vector<size_t
     for (size_t iE = 0; iE + 1 < ek; iE++) {
       faces.push_back(dropAdjacentDuplicates({pki[0], pij[ci + 1 + iE], pij[ci + 1 + iE + 1]}));
     }
-
   } else {
     // cout << "Triforce!" << endl;
     // Triforce configuration
@@ -677,17 +741,14 @@ FaceData<double> niceColors(ManifoldSurfaceMesh& mesh, int kColors) {
   std::vector<size_t> lastUsedT(kColors, 0);
   size_t timestamp = 0;
 
-
   FaceData<double> faceColor(mesh, -1.);
   for (Face f : mesh.faces()) {
-
     int bestColor = -1;
     size_t oldestColorT = std::numeric_limits<size_t>::max();
     int bestAdjacencyScore = -1; // 0 == used by a neighbor, 1 == used by a neighbor's neighbor
 
     // Consider all colors
     for (int iCandColor = 0; iCandColor < kColors; iCandColor++) {
-
       // Check against neighbors
       int adjacencyScore = 2;
       for (Face fN : f.adjacentFaces()) {
@@ -720,7 +781,5 @@ FaceData<double> niceColors(ManifoldSurfaceMesh& mesh, int kColors) {
 
   return faceColor;
 }
-
-
 } // namespace surface
 } // namespace geometrycentral

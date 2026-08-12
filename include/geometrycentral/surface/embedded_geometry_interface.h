@@ -101,6 +101,11 @@ public:
   void unrequireSimplePolygonVertexLumpedMassMatrix();
 
 protected:
+
+  // JEFFREY LAYTON
+  // Handling the copying procedure for rawCopyTo
+  EmbeddedGeometryInterface(const EmbeddedGeometryInterface& source, SurfaceMesh& targetMesh);
+
   // == Implmentations of quantities from base classes
   virtual void computeEdgeLengths() override;
   virtual void computeEdgeDihedralAngles() override;

@@ -9,14 +9,12 @@ namespace geometrycentral {
 namespace surface {
 
 class BaseGeometryInterface {
-
 public:
   BaseGeometryInterface(SurfaceMesh& mesh);
   virtual ~BaseGeometryInterface();
 
   // == Members
   SurfaceMesh& mesh;
-
 
   // == Utility methods
 
@@ -39,7 +37,6 @@ public:
   BaseGeometryInterface& operator=(BaseGeometryInterface&& other) = delete;
 
   // === Quantities
-
 
   // == Indices
   // Note: These don't depend on any geometric information, and are no different than the getVertexIndices() offered by
@@ -80,8 +77,12 @@ public:
   void requireBoundaryLoopIndices();
   void unrequireBoundaryLoopIndices();
 
-
 protected:
+
+  // JEFFREY LAYTON
+  // Handling the copying procedure for rawCopyTo
+  BaseGeometryInterface(const BaseGeometryInterface& source, SurfaceMesh& targetMesh);
+
   // All of the quantities available (subclasses will also add quantities to this list)
   // Note that this is a vector of non-owning pointers; the quantities are generally value members in the class, so
   // there is no need to delete these.
@@ -112,6 +113,5 @@ protected:
   DependentQuantityD<BoundaryLoopData<size_t>> boundaryLoopIndicesQ;
   virtual void computeBoundaryLoopIndices();
 };
-
 } // namespace surface
 } // namespace geometrycentral

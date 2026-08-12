@@ -164,6 +164,11 @@ public:
   void unrequireDECOperators();
 
 protected:
+
+  // JEFFREY LAYTON
+  // Handling the copying procedure for rawCopyTo
+  IntrinsicGeometryInterface(const IntrinsicGeometryInterface& source, SurfaceMesh& targetMesh);
+
   // == Lengths, areas, and angles
 
   // Edge lengths

@@ -36,6 +36,16 @@ std::unique_ptr<EdgeLengthGeometry> EdgeLengthGeometry::reinterpretTo(SurfaceMes
   return newGeom;
 }
 
+std::unique_ptr<EdgeLengthGeometry> EdgeLengthGeometry::rawCopyTo(SurfaceMesh& targetMesh) const {
+  return std::unique_ptr<EdgeLengthGeometry>(new EdgeLengthGeometry(*this, targetMesh));
+}
+
+// clang-format off
+EdgeLengthGeometry::EdgeLengthGeometry(const EdgeLengthGeometry& source, SurfaceMesh& targetMesh) :
+  IntrinsicGeometryInterface(source, targetMesh),
+  inputEdgeLengths(edgeLengths) {
+}
+// clang-format on
 
 void EdgeLengthGeometry::computeEdgeLengths() {
   // The input edge lengthss share storage with edgeLengths, so this is a no-op

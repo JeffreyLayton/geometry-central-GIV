@@ -51,6 +51,11 @@ public:
   void unrequireFacePrincipalCurvatureDirections();
 
 protected:
+
+  // JEFFREY LAYTON
+  // Handling the copying procedure for rawCopyTo
+  ExtrinsicGeometryInterface(const ExtrinsicGeometryInterface& source, SurfaceMesh& targetMesh);
+
   // Edge dihedral angle
   DependentQuantityD<EdgeData<double>> edgeDihedralAnglesQ;
   virtual void computeEdgeDihedralAngles() = 0;

@@ -28,6 +28,10 @@ NormalCoordinates::NormalCoordinates(ManifoldSurfaceMesh& mesh_) : mesh(mesh_) {
   roundaboutDegrees = VertexData<int>(mesh, 0);
 }
 
+NormalCoordinates NormalCoordinates::rawCopyTo(ManifoldSurfaceMesh& targetMesh) const {
+  return NormalCoordinates(*this, targetMesh);
+}
+
 void NormalCoordinates::setCurvesFromEdges(ManifoldSurfaceMesh& mesh) {
 
   for (Edge e : mesh.edges()) {
@@ -743,6 +747,15 @@ void NormalCoordinates::setRoundaboutFromPrevRoundabout(Halfedge he) {
     roundabouts[he] = rNew;
   }
 }
+
+// clang-format off
+NormalCoordinates::NormalCoordinates(const NormalCoordinates& source, ManifoldSurfaceMesh& targetMesh) :
+  mesh(targetMesh),
+  edgeCoords(source.edgeCoords.reinterpretTo(targetMesh)),
+  roundabouts(source.roundabouts.reinterpretTo(targetMesh)),
+  roundaboutDegrees(source.roundaboutDegrees.reinterpretTo(targetMesh)) {
+}
+// clang-format on
 
 /*       Flip rotates edge clockwise
  *          k                   k

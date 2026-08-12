@@ -84,7 +84,6 @@ IntrinsicTriangulation::IntrinsicTriangulation(ManifoldSurfaceMesh& mesh_, Intri
     throw std::runtime_error("intrinsic triangulation requires triangle intrinsic mesh as input");
   }
 
-    // Make sure the input mesh is manifold
   if (!inputMesh.isManifold()) {
     throw std::runtime_error("intrinsic triangulation requires manifold input mesh as input");
   }
@@ -123,9 +122,7 @@ void IntrinsicTriangulation::clearMarkedEdges() { markedEdges = EdgeData<bool>()
 // ======== Queries & Accessors
 // ======================================================
 
-
 EdgeData<std::vector<SurfacePoint>> IntrinsicTriangulation::traceAllIntrinsicEdgesAlongInput() {
-
   // Naively call the one-off function for each edge. Subclasses can override with better strategies.
 
   EdgeData<std::vector<SurfacePoint>> tracedEdges(mesh);
@@ -139,7 +136,6 @@ EdgeData<std::vector<SurfacePoint>> IntrinsicTriangulation::traceAllIntrinsicEdg
 }
 
 EdgeData<std::vector<SurfacePoint>> IntrinsicTriangulation::traceAllInputEdgesAlongIntrinsic() {
-
   // Naively call the one-off function for each edge. Subclasses can override with better strategies.
 
   EdgeData<std::vector<SurfacePoint>> tracedEdges(inputMesh);
@@ -303,9 +299,7 @@ double IntrinsicTriangulation::minAngleDegreesAtValidFaces(double minAngleSum) c
 // ======== Mutators
 // ======================================================
 
-
 Vertex IntrinsicTriangulation::insertCircumcenter(Face f) {
-
   // === Circumcenter in barycentric coordinates
 
   Halfedge he0 = f.halfedge();
@@ -385,9 +379,7 @@ std::vector<double> IntrinsicTriangulation::recoverTraceTValues(const std::vecto
 // ======================================================
 //
 
-
 void IntrinsicTriangulation::flipToDelaunay() {
-
   std::deque<Edge> edgesToCheck;
   EdgeData<bool> inQueue(mesh, true);
   for (Edge e : mesh.edges()) {
@@ -396,7 +388,6 @@ void IntrinsicTriangulation::flipToDelaunay() {
 
   // size_t nFlips = 0; // unused
   while (!edgesToCheck.empty()) {
-
     // Get the top element from the queue of possibily non-Delaunay edges
     Edge e = edgesToCheck.front();
     edgesToCheck.pop_front();
@@ -428,7 +419,6 @@ void IntrinsicTriangulation::flipToDelaunay() {
 
 void IntrinsicTriangulation::delaunayRefine(double angleThreshDegrees, double circumradiusThresh,
                                             size_t maxInsertions) {
-
   // Relationship between angles and circumradius-to-edge
   double angleThreshRad = angleThreshDegrees * M_PI / 180.;
   double circumradiusEdgeRatioThresh = 1.0 / (2.0 * std::sin(angleThreshRad));
@@ -485,10 +475,8 @@ void IntrinsicTriangulation::delaunayRefine(double angleThreshDegrees, double ci
     // Explicit check allows us to skip degree one vertices (can't make those angles smaller!)
     bool needsRefinementAngle = false;
     for (Halfedge he : f.adjacentHalfedges()) {
-
       double baseAngle = cornerAngle(he.corner());
       if (baseAngle < angleThreshRad) {
-
         // If it's already a degree one vertex, nothing we can do here
         bool isDegreeOneVertex = he.next().next() == he.twin();
         if (isDegreeOneVertex) {
@@ -511,9 +499,7 @@ void IntrinsicTriangulation::delaunayRefine(double angleThreshDegrees, double ci
   delaunayRefine(needsCircumcenterRefinement, maxInsertions);
 }
 
-
 void IntrinsicTriangulation::delaunayRefine(const std::function<bool(Face)>& shouldRefine, size_t maxInsertions) {
-
   // Manages a check at the bottom to avoid infinite-looping when numerical baddness happens
   int recheckCount = 0;
   const int MAX_RECHECK_COUNT = 5;
@@ -529,7 +515,6 @@ void IntrinsicTriangulation::delaunayRefine(const std::function<bool(Face)>& sho
     delaunayCheckQueue.push_back(e);
     inDelaunayQueue[e] = true;
   }
-
 
   // Return a weight to use for sorting PQ. Usually sorts by biggest area, but also puts faces on boundary first with
   // weight inf.
@@ -585,7 +570,6 @@ void IntrinsicTriangulation::delaunayRefine(const std::function<bool(Face)>& sho
   // least O(n).
   auto flipToDelaunayFromQueue = [&]() {
     while (!delaunayCheckQueue.empty()) {
-
       // Get the top element from the queue of possibily non-Delaunay edges
       Edge e = delaunayCheckQueue.front();
       delaunayCheckQueue.pop_front();
@@ -625,7 +609,6 @@ void IntrinsicTriangulation::delaunayRefine(const std::function<bool(Face)>& sho
         Face fReplace = removeInsertedVertex(v);
 
         if (fReplace != Face()) {
-
           // Add adjacent edges for Delaunay check
           for (Edge nE : fReplace.adjacentEdges()) {
             if (!inDelaunayQueue[nE]) {
@@ -649,7 +632,6 @@ void IntrinsicTriangulation::delaunayRefine(const std::function<bool(Face)>& sho
 
   // === Outer iteration: flip and insert until we have a mesh that satisfies both angle and circumradius goals
   do {
-
     // == First, flip to delaunay
     flipToDelaunayFromQueue();
 
@@ -662,7 +644,6 @@ void IntrinsicTriangulation::delaunayRefine(const std::function<bool(Face)>& sho
 
     // Try to insert just one circumcenter
     if (!circumradiusCheckQueue.empty()) {
-
       // Get the biggest face
       Face f = std::get<2>(circumradiusCheckQueue.top());
       double A = std::get<1>(circumradiusCheckQueue.top());
@@ -674,7 +655,6 @@ void IntrinsicTriangulation::delaunayRefine(const std::function<bool(Face)>& sho
       //    re-add it, because it must have been placed in the queue when its area was changed
       //   - This face might have been flipped to no longer violate constraint
       if (A == faceArea(f) && shouldRefine(f)) {
-
         Vertex newVert = insertCircumcenter(f);
         if (newVert == Vertex()) {
           // vertex insertion failed (probably due to a tracing error)
@@ -684,7 +664,6 @@ void IntrinsicTriangulation::delaunayRefine(const std::function<bool(Face)>& sho
 
         // Mark everything in the 1-ring as possibly non-Delaunay and possibly violating the circumradius constraint
         for (Face nF : newVert.adjacentFaces()) {
-
           // Check circumradius constraint
           if (shouldRefine(nF)) {
             circumradiusCheckQueue.push(std::make_tuple(areaWeight(nF), faceArea(nF), nF));
@@ -730,7 +709,6 @@ void IntrinsicTriangulation::delaunayRefine(const std::function<bool(Face)>& sho
         break;
       }
     }
-
   } while (!delaunayCheckQueue.empty() || !circumradiusCheckQueue.empty() || recheckCount < MAX_RECHECK_COUNT);
 
   // Cleanup work: recompute any geometric data, and remove the special callbacks we added
@@ -738,7 +716,6 @@ void IntrinsicTriangulation::delaunayRefine(const std::function<bool(Face)>& sho
   edgeSplitCallbackList.erase(splitCallbackHandle);
   edgeFlipCallbackList.erase(flipCallbackHandle);
 }
-
 
 void IntrinsicTriangulation::updateFaceBasis(Face f) {
   Halfedge he = f.halfedge();
@@ -760,13 +737,36 @@ void IntrinsicTriangulation::updateFaceBasis(Face f) {
   halfedgeVectorsInFace[he] = p0 - p2;
 }
 
+IntrinsicTriangulation::IntrinsicTriangulation(const IntrinsicTriangulation& source,
+                                               std::unique_ptr<ManifoldSurfaceMesh> intrinsicMesh_)
+    : EdgeLengthGeometry(source, *intrinsicMesh_), inputMesh(source.inputMesh), inputGeom(source.inputGeom),
+      intrinsicMesh(std::move(intrinsicMesh_)), vertexLocations(source.vertexLocations.reinterpretTo(mesh)),
+      markedEdges(source.markedEdges.reinterpretTo(mesh)), triangleTestEPS(source.triangleTestEPS) {
+  // vertexLocations is indexed by the intrinsic mesh, but its SurfacePoint
+  // values refer to the shared inputMesh and therefore need no rebinding.
+
+  if (source.commonSubdivision) {
+    commonSubdivision = source.commonSubdivision->rawCopyTo(inputMesh, *intrinsicMesh);
+  }
+
+  auto updateMarkedEdges = [this](Edge oldE, Halfedge newHe1, Halfedge newHe2) {
+    if (markedEdges.size() > 0 && markedEdges[oldE]) {
+      markedEdges[newHe1.edge()] = true;
+      markedEdges[newHe2.edge()] = true;
+    }
+  };
+
+  edgeSplitCallbackList.push_back(updateMarkedEdges);
+
+  GC_SAFETY_ASSERT(&mesh == intrinsicMesh.get(), "IntrinsicTriangulation::mesh must reference intrinsicMesh");
+}
+
 CommonSubdivision& IntrinsicTriangulation::getCommonSubdivision() {
   if (!commonSubdivision) {
     constructCommonSubdivision();
   }
   return *commonSubdivision;
 }
-
 
 void IntrinsicTriangulation::triangulationChanged() { commonSubdivision.reset(); }
 
@@ -785,6 +785,5 @@ void IntrinsicTriangulation::invokeEdgeSplitCallbacks(Edge e, Halfedge he1, Half
     fn(e, he1, he2);
   }
 }
-
 } // namespace surface
 } // namespace geometrycentral

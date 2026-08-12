@@ -114,6 +114,12 @@ public:
 
   // === Methods
 
+  // JEFFREY LAYTON
+  // Construct a raw copy on another mesh, preserving computed quantities.
+  // The meshes must have identical connectivity.
+  std::unique_ptr<CommonSubdivision> rawCopyTo(ManifoldSurfaceMesh& targetMeshA,
+                                               ManifoldSurfaceMesh& targetMeshB) const;
+
   // Construct `mesh` and auxiliary data. Throws on failure (see note above)
   void constructMesh(bool triangulate = true, bool skipIfAlreadyConstructed = true);
   void triangulateMesh();
@@ -179,6 +185,12 @@ public:
 
   // Throws an error if the mesh has not yet been constructed.
   void checkMeshConstructed() const;
+
+protected: 
+
+  // JEFFREY LAYTON
+  // Handling the copying procedure for rawCopyTo
+  CommonSubdivision(const CommonSubdivision& source, ManifoldSurfaceMesh& meshA_, ManifoldSurfaceMesh& meshB_);
 };
 
 std::vector<std::vector<size_t>> sliceFace(const std::vector<size_t>& pij, const std::vector<size_t>& pjk,

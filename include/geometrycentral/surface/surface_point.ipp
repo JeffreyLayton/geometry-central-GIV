@@ -1,3 +1,4 @@
+#include "surface_point.h"
 #pragma once
 
 namespace geometrycentral {
@@ -274,6 +275,37 @@ inline bool SurfacePoint::operator==(const SurfacePoint& other) const {
 }
 inline bool SurfacePoint::operator!=(const SurfacePoint& other) const { return !(*this == other); }
 
+inline SurfacePoint SurfacePoint::reinterpretTo(SurfaceMesh& targetMesh) const {
+  switch (type) {
+  case SurfacePointType::Vertex:
+    if (vertex == Vertex()) return *this;
+
+    GC_SAFETY_ASSERT(vertex.getIndex() < targetMesh.vertexIndexSize(),
+                     "SurfacePoint::reinterpretTo(): vertex index out of range");
+
+    return SurfacePoint(Vertex(&targetMesh, vertex.getIndex()));
+
+  case SurfacePointType::Edge:
+    if (edge == Edge()) return *this;
+
+    GC_SAFETY_ASSERT(edge.getIndex() < targetMesh.edgeIndexSize(),
+                     "SurfacePoint::reinterpretTo(): edge index out of range");
+
+    return SurfacePoint(Edge(&targetMesh, edge.getIndex()), tEdge);
+
+  case SurfacePointType::Face:
+    if (face == Face()) return *this;
+
+    GC_SAFETY_ASSERT(face.getIndex() < targetMesh.faceIndexSize(),
+                     "SurfacePoint::reinterpretTo(): face index out of range");
+
+    return SurfacePoint(Face(&targetMesh, face.getIndex()), faceCoords);
+  }
+
+  GC_SAFETY_ASSERT(false, "SurfacePoint::reinterpretTo(): invalid SurfacePointType");
+
+  return SurfacePoint();
+}
 
 inline Face sharedFace(const SurfacePoint& pA, const SurfacePoint& pB) {
 

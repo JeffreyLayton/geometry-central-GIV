@@ -239,6 +239,11 @@ public:
 
 
 protected:
+
+  // JEFFREY LAYTON
+  // Handling the copying procedure for rawCopyTo
+  IntrinsicTriangulation(const IntrinsicTriangulation& source, std::unique_ptr<ManifoldSurfaceMesh> intrinsicMesh_);
+
   // The current common subdivision. This member will only be populated if the subdivision is valid.
   // Implementations must sure to call triangulationChanged() below after any modifications, which handles clearing out
   // the common subdivision.
