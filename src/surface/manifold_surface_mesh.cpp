@@ -1818,6 +1818,12 @@ VertexData<Vertex> ManifoldSurfaceMesh::separateNonmanifoldVertices() {
 }
 void ManifoldSurfaceMesh::greedilyOrientFaces() {}
 
+void ManifoldSurfaceMesh::reserveElementCapacity(size_t minVertexCapacity, size_t minEdgeCapacity,
+                                                 size_t minFaceCapacity) {
+
+  SurfaceMesh::reserveElementCapacity(minVertexCapacity, 2 * minEdgeCapacity, minEdgeCapacity, minFaceCapacity);
+}
+
 bool ManifoldSurfaceMesh::hasBoundary() { return nBoundaryLoopsCount > 0; }
 
 std::unique_ptr<ManifoldSurfaceMesh> ManifoldSurfaceMesh::copy() const {

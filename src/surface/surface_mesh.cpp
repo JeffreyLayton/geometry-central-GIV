@@ -1066,6 +1066,126 @@ void SurfaceMesh::greedilyOrientFaces() {
   }
 }
 
+void SurfaceMesh::reserveElementCapacity(size_t minVertexCapacity, size_t minHalfedgeCapacity, size_t minEdgeCapacity,
+                                         size_t minFaceCapacity) {
+
+  bool expanded = false;
+
+  // == Vertices
+
+  if (minVertexCapacity > nVerticesCapacityCount) {
+    vHalfedgeArr.resize(minVertexCapacity);
+
+    if (!usesImplicitTwin()) {
+      vHeInStartArr.resize(minVertexCapacity);
+      vHeOutStartArr.resize(minVertexCapacity);
+    }
+
+    nVerticesCapacityCount = minVertexCapacity;
+
+    for (auto& f : vertexExpandCallbackList) {
+      f(minVertexCapacity);
+    }
+
+    expanded = true;
+  }
+
+  // == Halfedges and edges
+
+  size_t targetHalfedgeCapacity = std::max(nHalfedgesCapacityCount, minHalfedgeCapacity);
+  size_t targetEdgeCapacity = std::max(nEdgesCapacityCount, minEdgeCapacity);
+
+  if (usesImplicitTwin()) {
+    GC_SAFETY_ASSERT(nHalfedgesCapacityCount == 2 * nEdgesCapacityCount,
+                     "edge and halfedge capacities are out of sync");
+
+    size_t minEdgesForHalfedges = minHalfedgeCapacity / 2 + minHalfedgeCapacity % 2;
+
+    targetEdgeCapacity = std::max(targetEdgeCapacity, minEdgesForHalfedges);
+    targetHalfedgeCapacity = 2 * targetEdgeCapacity;
+  }
+
+  if (targetHalfedgeCapacity > nHalfedgesCapacityCount) {
+    heNextArr.resize(targetHalfedgeCapacity);
+    heVertexArr.resize(targetHalfedgeCapacity);
+    heFaceArr.resize(targetHalfedgeCapacity);
+
+    if (!usesImplicitTwin()) {
+      heSiblingArr.resize(targetHalfedgeCapacity);
+      heEdgeArr.resize(targetHalfedgeCapacity);
+      heOrientArr.resize(targetHalfedgeCapacity);
+      heVertInNextArr.resize(targetHalfedgeCapacity);
+      heVertInPrevArr.resize(targetHalfedgeCapacity);
+      heVertOutNextArr.resize(targetHalfedgeCapacity);
+      heVertOutPrevArr.resize(targetHalfedgeCapacity);
+    }
+
+    nHalfedgesCapacityCount = targetHalfedgeCapacity;
+
+    for (auto& f : halfedgeExpandCallbackList) {
+      f(targetHalfedgeCapacity);
+    }
+
+    expanded = true;
+  }
+
+  if (targetEdgeCapacity > nEdgesCapacityCount) {
+    if (!usesImplicitTwin()) {
+      eHalfedgeArr.resize(targetEdgeCapacity);
+    }
+
+    nEdgesCapacityCount = targetEdgeCapacity;
+
+    for (auto& f : edgeExpandCallbackList) {
+      f(targetEdgeCapacity);
+    }
+
+    expanded = true;
+  }
+
+  // == Faces
+
+  if (minFaceCapacity > nFacesCapacity()) {
+    size_t oldCapacity = nFacesCapacityCount;
+    size_t newCapacity = minFaceCapacity + nBoundaryLoopsFillCount;
+    size_t capacityIncrease = newCapacity - oldCapacity;
+
+    fHalfedgeArr.resize(newCapacity);
+
+    // Boundary loops occupy the back of the face buffer.
+    for (size_t iBack = 0; iBack < nBoundaryLoopsFillCount; iBack++) {
+      size_t iOld = oldCapacity - iBack - 1;
+      size_t iNew = newCapacity - iBack - 1;
+
+      fHalfedgeArr[iNew] = fHalfedgeArr[iOld];
+      fHalfedgeArr[iOld] = INVALID_IND;
+    }
+
+    // Update halfedges whose face entry refers to a boundary loop.
+    for (size_t iHe = 0; iHe < nHalfedgesFillCount; iHe++) {
+      if (halfedgeIsDead(iHe)) {
+        continue;
+      }
+
+      if (heFaceArr[iHe] >= nFacesFillCount) {
+        heFaceArr[iHe] += capacityIncrease;
+      }
+    }
+
+    nFacesCapacityCount = newCapacity;
+
+    for (auto& f : faceExpandCallbackList) {
+      f(newCapacity);
+    }
+
+    expanded = true;
+  }
+
+  if (expanded) {
+    modificationTick++;
+  }
+}
+
 void SurfaceMesh::validateConnectivity() {
 
   // Sanity check sizes and counts

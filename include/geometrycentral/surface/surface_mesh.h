@@ -223,6 +223,11 @@ public:
   size_t faceIndexSize() const;
   size_t boundaryLoopIndexSize() const;
 
+  // JEFFREY LAYTON
+  // Added to pre-reserve addtional elements
+  void reserveElementCapacity(size_t minVertexCapacity, size_t minHalfedgeCapacity, size_t minEdgeCapacity,
+                              size_t minFaceCapacity);
+
   // == Debugging, etc
 
   // Performs a sanity checks on halfedge structure; throws on fail

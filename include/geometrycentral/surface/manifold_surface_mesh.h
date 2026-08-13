@@ -91,6 +91,9 @@ public:
   VertexData<Vertex> separateNonmanifoldVertices() override;
   void greedilyOrientFaces() override;
 
+  // JEFFREY LAYTON
+  // Added to pre-reserve addtional elements
+  void reserveElementCapacity(size_t minVertexCapacity, size_t minEdgeCapacity, size_t minFaceCapacity);
 
   // == Utility functions
   std::unique_ptr<ManifoldSurfaceMesh> copy() const;
