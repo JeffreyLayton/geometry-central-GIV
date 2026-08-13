@@ -73,7 +73,19 @@ SignpostIntrinsicTriangulation::SignpostIntrinsicTriangulation(
 
 std::unique_ptr<SignpostIntrinsicTriangulation> SignpostIntrinsicTriangulation::rawCopy() const {
   return std::unique_ptr<SignpostIntrinsicTriangulation>(
-      new SignpostIntrinsicTriangulation(*this, intrinsicMesh->copy()));
+      new SignpostIntrinsicTriangulation(*this, intrinsicMesh->copy(), CopyType::Duplicate));
+}
+
+std::unique_ptr<SignpostIntrinsicTriangulation>
+SignpostIntrinsicTriangulation::makeOverlay(IntrinsicTriangulation& source) {
+  return std::unique_ptr<SignpostIntrinsicTriangulation>(
+      new SignpostIntrinsicTriangulation(source, source.intrinsicMesh->copy(), CopyType::Overlay));
+}
+
+std::unique_ptr<SignpostIntrinsicTriangulation>
+SignpostIntrinsicTriangulation::makeOverlay(SignpostIntrinsicTriangulation& source) {
+  return std::unique_ptr<SignpostIntrinsicTriangulation>(
+      new SignpostIntrinsicTriangulation(source, source.intrinsicMesh->copy(), CopyType::Overlay));
 }
 
 std::vector<SurfacePoint> SignpostIntrinsicTriangulation::traceIntrinsicHalfedgeAlongInput(Halfedge he) {
@@ -587,10 +599,62 @@ Halfedge SignpostIntrinsicTriangulation::splitEdge(Halfedge he, double tSplit) {
 }
 
 // clang-format off
-SignpostIntrinsicTriangulation::SignpostIntrinsicTriangulation(const SignpostIntrinsicTriangulation& source, std::unique_ptr<ManifoldSurfaceMesh> intrinsicMesh_) :
-  IntrinsicTriangulation(source, std::move(intrinsicMesh_)),
-  signpostAngle(source.signpostAngle.reinterpretTo(mesh)),
-  edgeIsOriginal(source.edgeIsOriginal.reinterpretTo(mesh)) {
+SignpostIntrinsicTriangulation::SignpostIntrinsicTriangulation(
+    const SignpostIntrinsicTriangulation& source,
+    std::unique_ptr<ManifoldSurfaceMesh> intrinsicMesh_,
+    CopyType copy_type) :
+  IntrinsicTriangulation(source, std::move(intrinsicMesh_), copy_type),
+  signpostAngle(copy_type == CopyType::Duplicate ? source.signpostAngle.reinterpretTo(mesh) : HalfedgeData<double>(mesh)),
+  edgeIsOriginal(copy_type == CopyType::Duplicate ? source.edgeIsOriginal.reinterpretTo(mesh) : EdgeData<bool>(mesh, true)) {
+  if (copy_type == CopyType::Overlay) {
+    // Walk around each vertex, constructing the default angular directions.
+      for (Vertex v : mesh.vertices()) {
+        double runningAngle = 0.;
+        Halfedge firstHe = v.halfedge();
+        Halfedge currHe = firstHe;
+        do {
+          signpostAngle[currHe] = runningAngle;
+
+          if (!currHe.isInterior()) {
+            break;
+          }
+
+          double cornerAngleVal = cornerAngle(currHe.corner());
+          runningAngle += cornerAngleVal;
+
+          currHe = currHe.next().next().twin();
+        } while (currHe != firstHe);
+      }
+  }
+}
+// clang-format on
+
+// clang-format off
+SignpostIntrinsicTriangulation::SignpostIntrinsicTriangulation(
+    const IntrinsicTriangulation& source,
+    std::unique_ptr<ManifoldSurfaceMesh> intrinsicMesh_,
+    CopyType copy_type) :
+  IntrinsicTriangulation(source, std::move(intrinsicMesh_), copy_type),
+  signpostAngle(mesh),
+  edgeIsOriginal(mesh, true) {
+    // Walk around each vertex, constructing the default angular directions.
+    for (Vertex v : mesh.vertices()) {
+        double runningAngle = 0.;
+        Halfedge firstHe = v.halfedge();
+        Halfedge currHe = firstHe;
+        do {
+          signpostAngle[currHe] = runningAngle;
+
+          if (!currHe.isInterior()) {
+            break;
+          }
+
+          double cornerAngleVal = cornerAngle(currHe.corner());
+          runningAngle += cornerAngleVal;
+
+          currHe = currHe.next().next().twin();
+        } while (currHe != firstHe);
+    }
 }
 // clang-format on
 

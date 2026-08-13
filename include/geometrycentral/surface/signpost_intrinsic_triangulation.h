@@ -29,6 +29,9 @@ public:
   // Construct a raw copy, preserving computed quantities.
   std::unique_ptr<SignpostIntrinsicTriangulation> rawCopy() const;
 
+  static std::unique_ptr<SignpostIntrinsicTriangulation> makeOverlay(IntrinsicTriangulation& source);
+  static std::unique_ptr<SignpostIntrinsicTriangulation> makeOverlay(SignpostIntrinsicTriangulation& source);
+
   // ======================================================
   // ======== Core Members
   // ======================================================
@@ -87,8 +90,12 @@ protected:
 
   // JEFFREY LAYTON
   // Handling the copying procedure for rawCopyTo
+  SignpostIntrinsicTriangulation(const IntrinsicTriangulation& source,
+                                 std::unique_ptr<ManifoldSurfaceMesh> intrinsicMesh_,
+                                 CopyType copy_type = CopyType::Duplicate);
   SignpostIntrinsicTriangulation(const SignpostIntrinsicTriangulation& source,
-                                 std::unique_ptr<ManifoldSurfaceMesh> intrinsicMesh_);
+                                 std::unique_ptr<ManifoldSurfaceMesh> intrinsicMesh_,
+                                 CopyType copy_type = CopyType::Duplicate);
 
 private:
   // ======================================================

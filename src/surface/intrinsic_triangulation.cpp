@@ -733,29 +733,59 @@ void IntrinsicTriangulation::updateFaceBasis(Face f) {
   halfedgeVectorsInFace[he] = p0 - p2;
 }
 
-IntrinsicTriangulation::IntrinsicTriangulation(const IntrinsicTriangulation& source,
-                                               std::unique_ptr<ManifoldSurfaceMesh> intrinsicMesh_)
-    : EdgeLengthGeometry(source, *intrinsicMesh_), inputMesh(source.inputMesh), inputGeom(source.inputGeom),
-      intrinsicMesh(std::move(intrinsicMesh_)), vertexLocations(source.vertexLocations.reinterpretTo(mesh)),
-      markedEdges(source.markedEdges.reinterpretTo(mesh)), triangleTestEPS(source.triangleTestEPS) {
-  // vertexLocations is indexed by the intrinsic mesh, but its SurfacePoint
-  // values refer to the shared inputMesh and therefore need no rebinding.
+// clang-format off
+IntrinsicTriangulation::IntrinsicTriangulation(
+    const IntrinsicTriangulation& source,
+    std::unique_ptr<ManifoldSurfaceMesh> intrinsicMesh_,
+    CopyType copy_type) :
+  // Always copy the complete geometry hierarchy through EdgeLengthGeometry.
+  EdgeLengthGeometry(source, *intrinsicMesh_),
 
-  if (source.commonSubdivision) {
-    commonSubdivision = source.commonSubdivision->rawCopyTo(inputMesh, *intrinsicMesh);
+  // Duplicate preserves the existing overlay's input.
+  // Overlay places the new IT directly over source.intrinsicMesh.
+  inputMesh(copy_type == CopyType::Duplicate ? source.inputMesh : *source.intrinsicMesh),
+  inputGeom(copy_type == CopyType::Duplicate ? source.inputGeom
+                                             : static_cast<IntrinsicGeometryInterface&>(const_cast<IntrinsicTriangulation&>(source))),
+  intrinsicMesh(std::move(intrinsicMesh_)) {
+
+  switch (copy_type) {
+    case CopyType::Duplicate: { // Preserve the existing correspondence.
+      vertexLocations = source.vertexLocations.reinterpretTo(mesh);
+      markedEdges = source.markedEdges.reinterpretTo(mesh);
+      triangleTestEPS = source.triangleTestEPS;
+      if (source.commonSubdivision)
+        commonSubdivision = source.commonSubdivision->rawCopyTo(inputMesh, *intrinsicMesh);
+      break;
+    }
+    case CopyType::Overlay: {
+      // Fresh IT state. The copied intrinsic mesh is index-identical to
+      // source.intrinsicMesh, so its correspondence to inputMesh is identity.
+      vertexLocations = VertexData<SurfacePoint>(mesh);
+      for (Vertex vertex : mesh.vertices())
+        vertexLocations[vertex] = SurfacePoint(inputMesh.vertex(vertex.getIndex()));
+      // Intentionally fresh/default:
+      //    markedEdges       remains empty
+      //    commonSubdivision remains nullptr
+      //    triangleTestEPS   retains its default member initializer
+      break;
+    }
   }
 
+  // Reconstruct this IT's internal callback. Never copy source callbacks.
   auto updateMarkedEdges = [this](Edge oldE, Halfedge newHe1, Halfedge newHe2) {
     if (markedEdges.size() > 0 && markedEdges[oldE]) {
       markedEdges[newHe1.edge()] = true;
       markedEdges[newHe2.edge()] = true;
     }
   };
-
   edgeSplitCallbackList.push_back(updateMarkedEdges);
 
   GC_SAFETY_ASSERT(&mesh == intrinsicMesh.get(), "IntrinsicTriangulation::mesh must reference intrinsicMesh");
+  GC_SAFETY_ASSERT(halfedgeVectorsInVertexQ.computed    && halfedgeVectorsInVertexQ.requireCount > 0,   "Copied IT must keep halfedgeVectorsInVertex required");
+  GC_SAFETY_ASSERT(halfedgeVectorsInFaceQ.computed      && halfedgeVectorsInFaceQ.requireCount > 0,     "Copied IT must keep halfedgeVectorsInFace required");
+  GC_SAFETY_ASSERT(vertexAngleSumsQ.computed            && vertexAngleSumsQ.requireCount > 0,           "Copied IT must keep vertexAngleSums required");
 }
+// clang-format on
 
 CommonSubdivision& IntrinsicTriangulation::getCommonSubdivision() {
   if (!commonSubdivision) {
