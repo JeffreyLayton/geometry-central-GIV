@@ -84,6 +84,64 @@ std::vector<Halfedge> shortestEdgePath(IntrinsicGeometryInterface& geom, Vertex 
   return std::vector<Halfedge>();
 }
 
+std::vector<Halfedge> breadthFirstSearchEdgePath(IntrinsicGeometryInterface& geom, Vertex startVert, Vertex endVert) {
+
+  // Early out for empty case
+  if (startVert == endVert) {
+    return std::vector<Halfedge>();
+  }
+
+  // Gather values
+  SurfaceMesh& mesh = geom.mesh;
+
+  // Search state: incoming halfedge to each vertex, once discovered
+  VertexData<Halfedge> incomingHalfedge(mesh);
+
+  // Search state: discovered vertices eligible for expansion
+  std::vector<Vertex> queue;
+  queue.reserve(mesh.nVertices());
+  queue.push_back(startVert);
+
+  for (size_t queueHead = 0; queueHead < queue.size(); queueHead++) {
+
+    Vertex currVert = queue[queueHead];
+
+    for (Halfedge he : currVert.outgoingHalfedges()) {
+
+      Vertex nextVert = he.twin().vertex();
+
+      // The start vertex has no incoming halfedge; all other discovered vertices do
+      if (nextVert == startVert || incomingHalfedge[nextVert] != Halfedge()) {
+        continue;
+      }
+
+      // Accept the neighbor
+      incomingHalfedge[nextVert] = he;
+
+      // Found path! Walk backwards to reconstruct it and return
+      if (nextVert == endVert) {
+        std::vector<Halfedge> path;
+        Vertex walkV = nextVert;
+        while (walkV != startVert) {
+          Halfedge prevHe = incomingHalfedge[walkV];
+          path.push_back(prevHe);
+          walkV = prevHe.vertex();
+        }
+
+        std::reverse(std::begin(path), std::end(path));
+
+        return path;
+      }
+
+      // Enqueue neighbor
+      queue.push_back(nextVert);
+    }
+  }
+
+  // Didn't find path
+  return std::vector<Halfedge>();
+}
+
 
 std::unordered_map<Vertex, double> vertexDijkstraDistanceWithinRadius(IntrinsicGeometryInterface& geom,
                                                                       Vertex startVert, double ballRad) {

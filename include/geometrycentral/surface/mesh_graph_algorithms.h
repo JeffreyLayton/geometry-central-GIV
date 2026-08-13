@@ -13,6 +13,10 @@ namespace surface {
 // Returns an empty vector if the target is unreachable
 std::vector<Halfedge> shortestEdgePath(IntrinsicGeometryInterface& geom, Vertex startVert, Vertex endVert);
 
+// JEFFREY LAYTON
+// Added for an O(V + E) version of connecting the path, best with near uniform elements (hypothesis atm)
+std::vector<Halfedge> breadthFirstSearchEdgePath(IntrinsicGeometryInterface& geom, Vertex startVert, Vertex endVert);
+
 // Return the Dijstra distance to all vertices within the ball radius
 std::unordered_map<Vertex, double> vertexDijkstraDistanceWithinRadius(IntrinsicGeometryInterface& geom, Vertex startVert, double ballRad);
 

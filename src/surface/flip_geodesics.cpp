@@ -330,6 +330,41 @@ FlipEdgeNetwork::constructFromDijkstraPath(std::unique_ptr<SignpostIntrinsicTria
   return std::unique_ptr<FlipEdgeNetwork>(new FlipEdgeNetwork(std::move(tri_), std::move(paths)));
 }
 
+std::unique_ptr<FlipEdgeNetwork> FlipEdgeNetwork::constructFromBFSPath(ManifoldSurfaceMesh& mesh_,
+                                                                       IntrinsicGeometryInterface& geom,
+                                                                       Vertex startVert, Vertex endVert) {
+
+  // Get the BFS path
+  std::vector<Halfedge> bfsPath = breadthFirstSearchEdgePath(geom, startVert, endVert);
+  if (bfsPath.empty()) {
+    // Not connected, or same vertex
+    return std::unique_ptr<FlipEdgeNetwork>();
+  }
+
+  return std::unique_ptr<FlipEdgeNetwork>(new FlipEdgeNetwork(mesh_, geom, {bfsPath}));
+}
+
+std::unique_ptr<FlipEdgeNetwork>
+FlipEdgeNetwork::constructFromBFSPath(std::unique_ptr<SignpostIntrinsicTriangulation> tri_, Vertex startVert,
+                                      Vertex endVert) {
+
+  if (!tri_) {
+    throw std::invalid_argument("constructFromBFSPath() received a null triangulation");
+  }
+
+  // startVert and endVert must belong to tri_->intrinsicMesh.
+  std::vector<Halfedge> bfsPath = breadthFirstSearchEdgePath(*tri_, startVert, endVert);
+
+  if (bfsPath.empty()) {
+    return {};
+  }
+
+  std::vector<std::vector<Halfedge>> paths;
+  paths.emplace_back(std::move(bfsPath));
+
+  return std::unique_ptr<FlipEdgeNetwork>(new FlipEdgeNetwork(std::move(tri_), std::move(paths)));
+}
+
 std::unique_ptr<FlipEdgeNetwork> FlipEdgeNetwork::constructFromPiecewiseDijkstraPath(ManifoldSurfaceMesh& mesh_,
                                                                                      IntrinsicGeometryInterface& geom,
                                                                                      std::vector<Vertex> points,

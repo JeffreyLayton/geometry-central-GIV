@@ -99,7 +99,7 @@ public:
                   VertexData<bool> extraMarkedVerts = VertexData<bool>());
 
   // JEFFREY LAYTON
-  // Same as the above but ow adopts the triangulation instead of constructing a new one
+  // Same as the above but now adopts the triangulation instead of constructing a new one
   FlipEdgeNetwork(std::unique_ptr<SignpostIntrinsicTriangulation> tri_, const std::vector<std::vector<Halfedge>>& paths,
                   VertexData<bool> extraMarkedVerts = VertexData<bool>());
 
@@ -110,8 +110,18 @@ public:
                                                                     IntrinsicGeometryInterface& geom, Vertex startVert,
                                                                     Vertex endVert);
   // JEFFREY LAYTON
-  // Same as the above but ow adopts the triangulation instead of constructing a new one
+  // Same as the above but now adopts the triangulation instead of constructing a new one
   static std::unique_ptr<FlipEdgeNetwork> constructFromDijkstraPath(std::unique_ptr<SignpostIntrinsicTriangulation> tri,
+                                                                    Vertex startVert, Vertex endVert);
+
+  // JEFFREY LAYTON
+  // Run Breadth first Search between endpoints to initialize path
+  static std::unique_ptr<FlipEdgeNetwork> constructFromBFSPath(ManifoldSurfaceMesh& mesh,
+                                                                    IntrinsicGeometryInterface& geom, Vertex startVert,
+                                                                    Vertex endVert);
+  // JEFFREY LAYTON
+  // Same as the above but now adopts the triangulation instead of constructing a new one
+  static std::unique_ptr<FlipEdgeNetwork> constructFromBFSPath(std::unique_ptr<SignpostIntrinsicTriangulation> tri,
                                                                     Vertex startVert, Vertex endVert);
 
   // Run Dijkstra between i'th and (i+1)'th point to initialize path
