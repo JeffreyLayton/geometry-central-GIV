@@ -751,7 +751,7 @@ IntrinsicTriangulation::IntrinsicTriangulation(
   switch (copy_type) {
     case CopyType::Duplicate: { // Preserve the existing correspondence.
       vertexLocations = source.vertexLocations.reinterpretTo(mesh);
-      markedEdges = source.markedEdges.reinterpretTo(mesh);
+      markedEdges = source.markedEdges.getMesh() ? source.markedEdges.reinterpretTo(mesh) : EdgeData<bool>();
       triangleTestEPS = source.triangleTestEPS;
       if (source.commonSubdivision)
         commonSubdivision = source.commonSubdivision->rawCopyTo(inputMesh, *intrinsicMesh);
