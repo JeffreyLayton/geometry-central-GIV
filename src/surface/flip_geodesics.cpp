@@ -256,6 +256,35 @@ FlipEdgeNetwork::FlipEdgeNetwork(ManifoldSurfaceMesh& mesh_, IntrinsicGeometryIn
   validate();
 }
 
+FlipEdgeNetwork::FlipEdgeNetwork(std::unique_ptr<SignpostIntrinsicTriangulation> tri_,
+                                 const std::vector<std::vector<Halfedge>>& paths_, VertexData<bool> extraMarkedVerts)
+    : tri(std::move(tri_)), mesh(*tri->intrinsicMesh), pathsAtEdge(mesh), isMarkedVertex(mesh, false) {
+
+
+  for (const std::vector<Halfedge>& intPath : paths_) {
+    if (intPath.empty()) {
+      throw std::invalid_argument("cannot construct FlipEdgeNetwork from an empty path");
+    }
+
+    Halfedge firstHe = intPath.front();
+    Halfedge lastHe = intPath.back();
+    bool isClosed = firstHe.vertex() == lastHe.twin().vertex();
+
+    // Crucially: no getIndex() conversion. These are already intrinsic
+    // halfedges belonging to the adopted triangulation.
+    paths.emplace_back(new FlipEdgePath(*this, std::move(intPath), isClosed));
+  }
+
+  if (extraMarkedVerts.size() > 0) {
+    for (Vertex v : mesh.vertices()) {
+      if (extraMarkedVerts[v.getIndex()]) {
+        isMarkedVertex[v] = true;
+      }
+    }
+  }
+
+  validate();
+}
 
 void FlipEdgeNetwork::addPath(const std::vector<Halfedge>& hePath) {
   // Assumes that path is closed if it ends where it starts
@@ -278,6 +307,27 @@ std::unique_ptr<FlipEdgeNetwork> FlipEdgeNetwork::constructFromDijkstraPath(Mani
   }
 
   return std::unique_ptr<FlipEdgeNetwork>(new FlipEdgeNetwork(mesh_, geom, {dijkstraPath}));
+}
+
+std::unique_ptr<FlipEdgeNetwork>
+FlipEdgeNetwork::constructFromDijkstraPath(std::unique_ptr<SignpostIntrinsicTriangulation> tri_, Vertex startVert,
+                                           Vertex endVert) {
+
+  if (!tri_) {
+    throw std::invalid_argument("constructFromDijkstraPath() received a null triangulation");
+  }
+
+  // startVert and endVert must belong to tri_->intrinsicMesh.
+  std::vector<Halfedge> dijkstraPath = shortestEdgePath(*tri_, startVert, endVert);
+
+  if (dijkstraPath.empty()) {
+    return {};
+  }
+
+  std::vector<std::vector<Halfedge>> paths;
+  paths.emplace_back(std::move(dijkstraPath));
+
+  return std::unique_ptr<FlipEdgeNetwork>(new FlipEdgeNetwork(std::move(tri_), std::move(paths)));
 }
 
 std::unique_ptr<FlipEdgeNetwork> FlipEdgeNetwork::constructFromPiecewiseDijkstraPath(ManifoldSurfaceMesh& mesh_,
