@@ -52,24 +52,34 @@ IntegerCoordinatesIntrinsicTriangulation::IntegerCoordinatesIntrinsicTriangulati
     double mollifyEPS)
     : IntrinsicTriangulation(mesh_, inputGeom_, intrinsicMesh_, edgeLengths_, vertexLocations_),
       normalCoordinates(*intrinsicMesh) {
-
   normalCoordinates.edgeCoords = edgeCoords_.reinterpretTo(*intrinsicMesh);
   normalCoordinates.roundabouts = roundabouts_.reinterpretTo(*intrinsicMesh);
   normalCoordinates.roundaboutDegrees = roundaboutDegrees_.reinterpretTo(*intrinsicMesh);
 
   // TO-DO: Need to do checks on the mesh to reconcile the two
-  //normalCoordinates.validate();
+  // normalCoordinates.validate();
 
   // TODO document/expose this somehow, rather than just doing it silently
   if (mollifyEPS > 0) {
     mollifyIntrinsic(*intrinsicMesh, edgeLengths, mollifyEPS);
   }
-
 }
 
 std::unique_ptr<IntegerCoordinatesIntrinsicTriangulation> IntegerCoordinatesIntrinsicTriangulation::rawCopy() const {
   return std::unique_ptr<IntegerCoordinatesIntrinsicTriangulation>(
-      new IntegerCoordinatesIntrinsicTriangulation(*this, intrinsicMesh->copy()));
+      new IntegerCoordinatesIntrinsicTriangulation(*this, intrinsicMesh->copy(), CopyType::Duplicate));
+}
+
+std::unique_ptr<IntegerCoordinatesIntrinsicTriangulation>
+IntegerCoordinatesIntrinsicTriangulation::makeOverlay(IntrinsicTriangulation& source) {
+  return std::unique_ptr<IntegerCoordinatesIntrinsicTriangulation>(
+      new IntegerCoordinatesIntrinsicTriangulation(source, source.intrinsicMesh->copy(), CopyType::Overlay));
+}
+
+std::unique_ptr<IntegerCoordinatesIntrinsicTriangulation>
+IntegerCoordinatesIntrinsicTriangulation::makeOverlay(IntegerCoordinatesIntrinsicTriangulation& source) {
+  return std::unique_ptr<IntegerCoordinatesIntrinsicTriangulation>(
+      new IntegerCoordinatesIntrinsicTriangulation(source, source.intrinsicMesh->copy(), CopyType::Overlay));
 }
 
 // ======================================================
@@ -2088,11 +2098,31 @@ Face IntegerCoordinatesIntrinsicTriangulation::getParentFace(Face f) const {
 }
 
 // clang-format off
-IntegerCoordinatesIntrinsicTriangulation::IntegerCoordinatesIntrinsicTriangulation(const IntegerCoordinatesIntrinsicTriangulation& source, std::unique_ptr<ManifoldSurfaceMesh> intrinsicMesh_) :
-  IntrinsicTriangulation(source, std::move(intrinsicMesh_)),
-  normalCoordinates(source.normalCoordinates.rawCopyTo(*intrinsicMesh)) {
+IntegerCoordinatesIntrinsicTriangulation::
+IntegerCoordinatesIntrinsicTriangulation(
+    const IntrinsicTriangulation& source,
+    std::unique_ptr<ManifoldSurfaceMesh> intrinsicMesh_,
+    CopyType copy_type) :
+  IntrinsicTriangulation(source, std::move(intrinsicMesh_), copy_type),
+  normalCoordinates(*intrinsicMesh) {
+  // The source does not expose NormalCoordinates, so use the same
+  // default representation initialization as the normal constructor.
+  normalCoordinates.setCurvesFromEdges(*intrinsicMesh);
+}
+// clang-format on
 
-  GC_SAFETY_ASSERT(&normalCoordinates.mesh == intrinsicMesh.get(), "IntegerCoordinatesIntrinsicTriangulation::normalCoordinates must reference intrinsicMesh");
+// clang-format off
+IntegerCoordinatesIntrinsicTriangulation::
+IntegerCoordinatesIntrinsicTriangulation(
+    const IntegerCoordinatesIntrinsicTriangulation& source,
+    std::unique_ptr<ManifoldSurfaceMesh> intrinsicMesh_,
+    CopyType copy_type) :
+  IntrinsicTriangulation(source, std::move(intrinsicMesh_), copy_type),
+  normalCoordinates(copy_type == CopyType::Duplicate ? source.normalCoordinates.rawCopyTo(*intrinsicMesh) 
+                                                     : NormalCoordinates(*intrinsicMesh)) {
+  if (copy_type == CopyType::Overlay) {
+    normalCoordinates.setCurvesFromEdges(*intrinsicMesh);
+  }
 }
 // clang-format on
 

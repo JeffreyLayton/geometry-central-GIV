@@ -35,6 +35,12 @@ public:
   // Construct a raw copy, preserving computed quantities.
   std::unique_ptr<IntegerCoordinatesIntrinsicTriangulation> rawCopy() const;
 
+  // JEFFREY LAYTON
+  // Make overlays, if its a signpost, it will copy identity for everything while rebasing to the mesh,
+  // otherwise it wil init it like normal
+  static std::unique_ptr<IntegerCoordinatesIntrinsicTriangulation> makeOverlay(IntrinsicTriangulation& source);
+  static std::unique_ptr<IntegerCoordinatesIntrinsicTriangulation> makeOverlay(IntegerCoordinatesIntrinsicTriangulation& source);
+
   // ======================================================
   //                   Core Members
   // ======================================================
@@ -149,8 +155,12 @@ public:
 protected:
   // JEFFREY LAYTON
   // Handling the copying procedure for rawCopyTo
+  IntegerCoordinatesIntrinsicTriangulation(const IntrinsicTriangulation& source,
+                                           std::unique_ptr<ManifoldSurfaceMesh> intrinsicMesh_,
+                                           CopyType copy_type = CopyType::Duplicate);
   IntegerCoordinatesIntrinsicTriangulation(const IntegerCoordinatesIntrinsicTriangulation& source,
-                                           std::unique_ptr<ManifoldSurfaceMesh> intrinsicMesh_);
+                                           std::unique_ptr<ManifoldSurfaceMesh> intrinsicMesh_,
+                                           CopyType copy_type = CopyType::Duplicate);
 
 private:
   // Implementation details

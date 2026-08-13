@@ -29,6 +29,9 @@ public:
   // Construct a raw copy, preserving computed quantities.
   std::unique_ptr<SignpostIntrinsicTriangulation> rawCopy() const;
 
+  // JEFFREY LAYTON
+  // Make overlays, if its a signpost, it will copy identity for everything while rebasing to the mesh, 
+  // otherwise it wil init it like normal
   static std::unique_ptr<SignpostIntrinsicTriangulation> makeOverlay(IntrinsicTriangulation& source);
   static std::unique_ptr<SignpostIntrinsicTriangulation> makeOverlay(SignpostIntrinsicTriangulation& source);
 
