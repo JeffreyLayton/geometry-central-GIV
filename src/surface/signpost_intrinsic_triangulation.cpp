@@ -606,6 +606,7 @@ SignpostIntrinsicTriangulation::SignpostIntrinsicTriangulation(
   IntrinsicTriangulation(source, std::move(intrinsicMesh_), copy_type),
   signpostAngle(copy_type == CopyType::Duplicate ? source.signpostAngle.reinterpretTo(mesh) : HalfedgeData<double>(mesh)),
   edgeIsOriginal(copy_type == CopyType::Duplicate ? source.edgeIsOriginal.reinterpretTo(mesh) : EdgeData<bool>(mesh, true)) {
+  edgeIsOriginal.setDefault(false);
   if (copy_type == CopyType::Overlay) {
     // Walk around each vertex, constructing the default angular directions.
       for (Vertex v : mesh.vertices()) {
@@ -637,6 +638,7 @@ SignpostIntrinsicTriangulation::SignpostIntrinsicTriangulation(
   IntrinsicTriangulation(source, std::move(intrinsicMesh_), copy_type),
   signpostAngle(mesh),
   edgeIsOriginal(mesh, true) {
+    edgeIsOriginal.setDefault(false);
     // Walk around each vertex, constructing the default angular directions.
     for (Vertex v : mesh.vertices()) {
         double runningAngle = 0.;
