@@ -124,6 +124,19 @@ public:
   static std::unique_ptr<FlipEdgeNetwork> constructFromBFSPath(std::unique_ptr<SignpostIntrinsicTriangulation> tri,
                                                                     Vertex startVert, Vertex endVert);
 
+  // JEFFREY LAYTON
+  // Follow a vertex distance field toward the end vertex to initialize path
+  static std::unique_ptr<FlipEdgeNetwork> constructFromDistanceFieldPath(ManifoldSurfaceMesh& mesh,
+                                                                         IntrinsicGeometryInterface& geom,
+                                                                         Vertex startVert, Vertex endVert,
+                                                                         const VertexData<double>& distanceField);
+
+  // JEFFREY LAYTON
+  // Same as the above but now adopts the triangulation instead of constructing a new one
+  static std::unique_ptr<FlipEdgeNetwork>
+  constructFromDistanceFieldPath(std::unique_ptr<SignpostIntrinsicTriangulation> tri, Vertex startVert, Vertex endVert,
+                                 const VertexData<double>& distanceField);
+
   // Run Dijkstra between i'th and (i+1)'th point to initialize path
   static std::unique_ptr<FlipEdgeNetwork>
   constructFromPiecewiseDijkstraPath(ManifoldSurfaceMesh& mesh, IntrinsicGeometryInterface& geom,

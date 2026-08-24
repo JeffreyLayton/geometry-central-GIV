@@ -142,6 +142,104 @@ std::vector<Halfedge> breadthFirstSearchEdgePath(IntrinsicGeometryInterface& geo
   return std::vector<Halfedge>();
 }
 
+std::vector<Halfedge> distanceFieldSearchEdgePath(IntrinsicGeometryInterface& geom, Vertex startVert, Vertex endVert,
+                                                  const VertexData<double>& distanceField) {
+
+  SurfaceMesh& mesh = geom.mesh;
+
+  // Early out for empty case
+  if (startVert == endVert) {
+    return std::vector<Halfedge>();
+  }
+
+  geom.requireEdgeLengths();
+
+  // Search state: prevents a noisy distance field from creating cycles.
+  VertexData<bool> visited(mesh, false);
+  visited[startVert] = true;
+
+  std::vector<Halfedge> path;
+  Vertex currVert = startVert;
+
+  while (currVert != endVert) {
+
+    Halfedge bestHalfedge;
+    double bestGradient = 0.;
+
+    Halfedge fallbackHalfedge;
+    double fallbackDistance = std::numeric_limits<double>::infinity();
+
+    for (Halfedge he : currVert.outgoingHalfedges()) {
+      Vertex nextVert = he.twin().vertex();
+
+      // startVert was inserted after the field was computed, so never query it.
+      if (nextVert == startVert) {
+        continue;
+      }
+
+      if (visited[nextVert] && nextVert != endVert) {
+        continue;
+      }
+
+      // endVert was also inserted after the field was computed.
+      // B is the source of the distance field, so its distance is exactly zero.
+      const double nextDistance = nextVert == endVert ? 0. : distanceField[nextVert];
+
+      // startVert has no distance-field value. For the first step, choose the
+      // adjacent vertex with the smallest distance-to-B value.
+      if (currVert == startVert) {
+        if (nextDistance < fallbackDistance) {
+          fallbackDistance = nextDistance;
+          fallbackHalfedge = he;
+        }
+        continue;
+      }
+
+      // currVert cannot be either inserted endpoint here:
+      // startVert is handled above and endVert terminates the while loop.
+      const double currDistance = distanceField[currVert];
+
+      // Discrete directional derivative along this edge:
+      //
+      //   (d(curr) - d(next)) / edgeLength
+      //
+      // Positive values move downhill. Maximizing this selects the incident
+      // edge most strongly aligned with -grad(d).
+      const double gradient = (currDistance - nextDistance) / geom.edgeLengths[he.edge()];
+
+      if (gradient > bestGradient) {
+        bestGradient = gradient;
+        bestHalfedge = he;
+      }
+
+      // If approximation error leaves no descending edge, use the unvisited
+      // neighbor with the smallest estimated distance to B.
+      if (nextDistance < fallbackDistance) {
+        fallbackDistance = nextDistance;
+        fallbackHalfedge = he;
+      }
+    }
+
+    // First step or a local non-monotonicity in the approximate field.
+    if (bestHalfedge == Halfedge()) {
+      bestHalfedge = fallbackHalfedge;
+    }
+
+    // During testing, fail explicitly if the field-guided walk becomes trapped.
+    if (bestHalfedge == Halfedge()) {
+      geom.unrequireEdgeLengths();
+      throw std::runtime_error("distanceFieldSearchEdgePath() became trapped while following the distance field");
+    }
+
+    path.push_back(bestHalfedge);
+    currVert = bestHalfedge.twin().vertex();
+    visited[currVert] = true;
+  }
+
+  geom.unrequireEdgeLengths();
+  return path;
+}
+
 
 std::unordered_map<Vertex, double> vertexDijkstraDistanceWithinRadius(IntrinsicGeometryInterface& geom,
                                                                       Vertex startVert, double ballRad) {

@@ -365,6 +365,43 @@ FlipEdgeNetwork::constructFromBFSPath(std::unique_ptr<SignpostIntrinsicTriangula
   return std::unique_ptr<FlipEdgeNetwork>(new FlipEdgeNetwork(std::move(tri_), std::move(paths)));
 }
 
+std::unique_ptr<FlipEdgeNetwork>
+FlipEdgeNetwork::constructFromDistanceFieldPath(ManifoldSurfaceMesh& mesh_, IntrinsicGeometryInterface& geom,
+                                                Vertex startVert, Vertex endVert,
+                                                const VertexData<double>& distanceField) {
+
+  // Get the distance-field-guided path
+  std::vector<Halfedge> distanceFieldPath = distanceFieldSearchEdgePath(geom, startVert, endVert, distanceField);
+
+  if (distanceFieldPath.empty()) {
+    // Not connected, same vertex, or failed to find a path
+    return std::unique_ptr<FlipEdgeNetwork>();
+  }
+
+  return std::unique_ptr<FlipEdgeNetwork>(new FlipEdgeNetwork(mesh_, geom, {distanceFieldPath}));
+}
+
+std::unique_ptr<FlipEdgeNetwork>
+FlipEdgeNetwork::constructFromDistanceFieldPath(std::unique_ptr<SignpostIntrinsicTriangulation> tri_, Vertex startVert,
+                                                Vertex endVert, const VertexData<double>& distanceField) {
+
+  if (!tri_) {
+    throw std::invalid_argument("constructFromDistanceFieldPath() received a null triangulation");
+  }
+
+  // startVert and endVert must belong to tri_->intrinsicMesh.
+  std::vector<Halfedge> distanceFieldPath = distanceFieldSearchEdgePath(*tri_, startVert, endVert, distanceField);
+
+  if (distanceFieldPath.empty()) {
+    return {};
+  }
+
+  std::vector<std::vector<Halfedge>> paths;
+  paths.emplace_back(std::move(distanceFieldPath));
+
+  return std::unique_ptr<FlipEdgeNetwork>(new FlipEdgeNetwork(std::move(tri_), std::move(paths)));
+}
+
 std::unique_ptr<FlipEdgeNetwork> FlipEdgeNetwork::constructFromPiecewiseDijkstraPath(ManifoldSurfaceMesh& mesh_,
                                                                                      IntrinsicGeometryInterface& geom,
                                                                                      std::vector<Vertex> points,
