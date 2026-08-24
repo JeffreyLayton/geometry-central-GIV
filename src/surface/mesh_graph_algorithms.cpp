@@ -143,100 +143,132 @@ std::vector<Halfedge> breadthFirstSearchEdgePath(IntrinsicGeometryInterface& geo
 }
 
 std::vector<Halfedge> distanceFieldSearchEdgePath(IntrinsicGeometryInterface& geom, Vertex startVert, Vertex endVert,
-                                                  const VertexData<double>& distanceField) {
+                                                  const VertexData<double>& distanceFromA,
+                                                  const VertexData<double>& distanceFromB) {
 
   SurfaceMesh& mesh = geom.mesh;
 
-  // Early out for empty case
   if (startVert == endVert) {
     return std::vector<Halfedge>();
   }
 
-  geom.requireEdgeLengths();
+  const double INF = std::numeric_limits<double>::infinity();
 
-  // Search state: prevents a noisy distance field from creating cycles.
-  VertexData<bool> visited(mesh, false);
-  visited[startVert] = true;
+  const auto corridorCost = [&](Vertex v) -> double {
+    if (v == startVert || v == endVert) {
+      return 0.;
+    }
 
-  std::vector<Halfedge> path;
-  Vertex currVert = startVert;
+    return distanceFromA[v] + distanceFromB[v];
+  };
 
-  while (currVert != endVert) {
+  typedef std::pair<double, size_t> QueueEntry;
 
-    Halfedge bestHalfedge;
-    double bestGradient = 0.;
+  // Find the path corridor minimizing the maximum geodesic excess.
+  VertexData<double> bestCorridorCost(mesh, INF);
+  bestCorridorCost[startVert] = 0.;
 
-    Halfedge fallbackHalfedge;
-    double fallbackDistance = std::numeric_limits<double>::infinity();
+  std::priority_queue<QueueEntry, std::vector<QueueEntry>, std::greater<QueueEntry>> corridorQueue;
+
+  corridorQueue.push(QueueEntry(0., startVert.getIndex()));
+
+  while (!corridorQueue.empty()) {
+    const QueueEntry entry = corridorQueue.top();
+    corridorQueue.pop();
+
+    Vertex currVert = mesh.vertex(entry.second);
+
+    if (entry.first != bestCorridorCost[currVert]) {
+      continue;
+    }
+
+    if (currVert == endVert) {
+      break;
+    }
 
     for (Halfedge he : currVert.outgoingHalfedges()) {
       Vertex nextVert = he.twin().vertex();
 
-      // startVert was inserted after the field was computed, so never query it.
-      if (nextVert == startVert) {
+      const double candidateCost = std::max(bestCorridorCost[currVert], corridorCost(nextVert));
+
+      if (candidateCost < bestCorridorCost[nextVert]) {
+        bestCorridorCost[nextVert] = candidateCost;
+        corridorQueue.push(QueueEntry(candidateCost, nextVert.getIndex()));
+      }
+    }
+  }
+
+  const double optimalCorridorCost = bestCorridorCost[endVert];
+
+  if (!std::isfinite(optimalCorridorCost)) {
+    return std::vector<Halfedge>();
+  }
+
+  // Find the shortest edge path restricted to the optimal field corridor.
+  geom.requireEdgeLengths();
+
+  VertexData<double> pathDistance(mesh, INF);
+  VertexData<Halfedge> incomingHalfedge(mesh);
+
+  pathDistance[startVert] = 0.;
+
+  std::priority_queue<QueueEntry, std::vector<QueueEntry>, std::greater<QueueEntry>> pathQueue;
+
+  pathQueue.push(QueueEntry(0., startVert.getIndex()));
+
+  while (!pathQueue.empty()) {
+    const QueueEntry entry = pathQueue.top();
+    pathQueue.pop();
+
+    Vertex currVert = mesh.vertex(entry.second);
+
+    if (entry.first != pathDistance[currVert]) {
+      continue;
+    }
+
+    if (currVert == endVert) {
+      break;
+    }
+
+    for (Halfedge he : currVert.outgoingHalfedges()) {
+      Vertex nextVert = he.twin().vertex();
+
+      if (nextVert != endVert && corridorCost(nextVert) > optimalCorridorCost) {
         continue;
       }
 
-      if (visited[nextVert] && nextVert != endVert) {
-        continue;
-      }
+      const double candidateDistance = pathDistance[currVert] + geom.edgeLengths[he.edge()];
 
-      // endVert was also inserted after the field was computed.
-      // B is the source of the distance field, so its distance is exactly zero.
-      const double nextDistance = nextVert == endVert ? 0. : distanceField[nextVert];
-
-      // startVert has no distance-field value. For the first step, choose the
-      // adjacent vertex with the smallest distance-to-B value.
-      if (currVert == startVert) {
-        if (nextDistance < fallbackDistance) {
-          fallbackDistance = nextDistance;
-          fallbackHalfedge = he;
-        }
-        continue;
-      }
-
-      // currVert cannot be either inserted endpoint here:
-      // startVert is handled above and endVert terminates the while loop.
-      const double currDistance = distanceField[currVert];
-
-      // Discrete directional derivative along this edge:
-      //
-      //   (d(curr) - d(next)) / edgeLength
-      //
-      // Positive values move downhill. Maximizing this selects the incident
-      // edge most strongly aligned with -grad(d).
-      const double gradient = (currDistance - nextDistance) / geom.edgeLengths[he.edge()];
-
-      if (gradient > bestGradient) {
-        bestGradient = gradient;
-        bestHalfedge = he;
-      }
-
-      // If approximation error leaves no descending edge, use the unvisited
-      // neighbor with the smallest estimated distance to B.
-      if (nextDistance < fallbackDistance) {
-        fallbackDistance = nextDistance;
-        fallbackHalfedge = he;
+      if (candidateDistance < pathDistance[nextVert]) {
+        pathDistance[nextVert] = candidateDistance;
+        incomingHalfedge[nextVert] = he;
+        pathQueue.push(QueueEntry(candidateDistance, nextVert.getIndex()));
       }
     }
-
-    // First step or a local non-monotonicity in the approximate field.
-    if (bestHalfedge == Halfedge()) {
-      bestHalfedge = fallbackHalfedge;
-    }
-
-    // During testing, fail explicitly if the field-guided walk becomes trapped.
-    if (bestHalfedge == Halfedge()) {
-      geom.unrequireEdgeLengths();
-      throw std::runtime_error("distanceFieldSearchEdgePath() became trapped while following the distance field");
-    }
-
-    path.push_back(bestHalfedge);
-    currVert = bestHalfedge.twin().vertex();
-    visited[currVert] = true;
   }
 
   geom.unrequireEdgeLengths();
+
+  if (!std::isfinite(pathDistance[endVert])) {
+    return std::vector<Halfedge>();
+  }
+
+  std::vector<Halfedge> path;
+  Vertex currVert = endVert;
+
+  while (currVert != startVert) {
+    Halfedge he = incomingHalfedge[currVert];
+
+    if (he == Halfedge()) {
+      return std::vector<Halfedge>();
+    }
+
+    path.push_back(he);
+    currVert = he.vertex();
+  }
+
+  std::reverse(path.begin(), path.end());
+
   return path;
 }
 

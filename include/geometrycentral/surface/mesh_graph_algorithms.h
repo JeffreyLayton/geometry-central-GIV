@@ -18,8 +18,8 @@ std::vector<Halfedge> shortestEdgePath(IntrinsicGeometryInterface& geom, Vertex 
 std::vector<Halfedge> breadthFirstSearchEdgePath(IntrinsicGeometryInterface& geom, Vertex startVert, Vertex endVert);
 
 std::vector<Halfedge> distanceFieldSearchEdgePath(IntrinsicGeometryInterface& geom, Vertex startVert, Vertex endVert,
-                                                  const VertexData<double>& distanceField);
-
+                                                  const VertexData<double>& startDistanceField,
+                                                  const VertexData<double>& endDistanceField);
 // Return the Dijstra distance to all vertices within the ball radius
 std::unordered_map<Vertex, double> vertexDijkstraDistanceWithinRadius(IntrinsicGeometryInterface& geom, Vertex startVert, double ballRad);
 

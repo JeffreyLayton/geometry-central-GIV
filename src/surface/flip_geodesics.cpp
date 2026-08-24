@@ -366,12 +366,12 @@ FlipEdgeNetwork::constructFromBFSPath(std::unique_ptr<SignpostIntrinsicTriangula
 }
 
 std::unique_ptr<FlipEdgeNetwork>
-FlipEdgeNetwork::constructFromDistanceFieldPath(ManifoldSurfaceMesh& mesh_, IntrinsicGeometryInterface& geom,
-                                                Vertex startVert, Vertex endVert,
-                                                const VertexData<double>& distanceField) {
+FlipEdgeNetwork::constructFromDistanceFieldPath(ManifoldSurfaceMesh& mesh_, IntrinsicGeometryInterface& geom, Vertex startVert, Vertex endVert,
+    const VertexData<double>& startDistanceField, const VertexData<double>& endDistanceField) {
 
   // Get the distance-field-guided path
-  std::vector<Halfedge> distanceFieldPath = distanceFieldSearchEdgePath(geom, startVert, endVert, distanceField);
+  std::vector<Halfedge> distanceFieldPath =
+      distanceFieldSearchEdgePath(geom, startVert, endVert, startDistanceField, endDistanceField);
 
   if (distanceFieldPath.empty()) {
     // Not connected, same vertex, or failed to find a path
@@ -383,14 +383,16 @@ FlipEdgeNetwork::constructFromDistanceFieldPath(ManifoldSurfaceMesh& mesh_, Intr
 
 std::unique_ptr<FlipEdgeNetwork>
 FlipEdgeNetwork::constructFromDistanceFieldPath(std::unique_ptr<SignpostIntrinsicTriangulation> tri_, Vertex startVert,
-                                                Vertex endVert, const VertexData<double>& distanceField) {
+                                                Vertex endVert, const VertexData<double>& startDistanceField,
+                                                const VertexData<double>& endDistanceField) {
 
   if (!tri_) {
     throw std::invalid_argument("constructFromDistanceFieldPath() received a null triangulation");
   }
 
   // startVert and endVert must belong to tri_->intrinsicMesh.
-  std::vector<Halfedge> distanceFieldPath = distanceFieldSearchEdgePath(*tri_, startVert, endVert, distanceField);
+  std::vector<Halfedge> distanceFieldPath =
+      distanceFieldSearchEdgePath(*tri_, startVert, endVert, startDistanceField, endDistanceField);
 
   if (distanceFieldPath.empty()) {
     return {};
